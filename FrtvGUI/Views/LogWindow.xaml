@@ -1,0 +1,29 @@
+﻿<mah:MetroWindow x:Class="FrtvGUI.Views.LogWindow"
+        xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FrtvGUI.Views"
+        xmlns:converter="clr-namespace:FrtvGUI.Converter"
+        mc:Ignorable="d"
+        Title="백업 로그" Height="430" Width="500" ResizeMode="NoResize">
+    <Window.Resources>
+        <converter:DateTimeConverter x:Key="DateTimeConverter"/>
+    </Window.Resources>
+
+    <local:DpiDecorator>
+        <Grid>
+            <DataGrid x:Name="LogDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+            Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Top" Height="356" Width="480" BorderThickness="1,1,1,1" Margin="0,10,0,0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding Date, Converter={StaticResource DateTimeConverter}}" CanUserReorder="False" Header="날짜"/>
+                    <DataGridTextColumn Binding="{Binding LogLevel}" CanUserReorder="False" Header="구분"/>
+                    <DataGridTextColumn Binding="{Binding Message}" CanUserReorder="False" Header="내용"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <Button x:Name="ClearLogButton" Content="로그 전체 삭제" HorizontalAlignment="Left" Margin="390,371,0,0" Width="100" Background="#FF348EF6" FontSize="11" Foreground="White" Height="35" VerticalAlignment="Top" RenderTransformOrigin="0.693,0.445" Click="ClearLogButton_Click"/>
+
+        </Grid>
+    </local:DpiDecorator>
+</mah:MetroWindow>

@@ -1,0 +1,72 @@
+﻿<UserControl x:Class="FrtvGUI.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converter="clr-namespace:FrtvGUI.Converter"
+             xmlns:db="clr-namespace:FrtvGUI.Database"
+             xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+             mc:Ignorable="d" Height="591" Width="700">
+
+    <Control.Resources>
+        <converter:DataSizeConverter x:Key="DataSizeConverter"/>
+        <converter:DateTimeConverter x:Key="DateTimeConverter"/>
+    </Control.Resources>
+
+    <Grid Background="White">
+        <Label Content="실시간 백업" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
+        <Label Content="목록에 있는 확장자만 자동으로 백업되며, 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
+        <mah:ToggleSwitch x:Name="BackupToggleSwitch" Height="57" Header="" Margin="10,40,0,0" VerticalAlignment="Top" Width="110" FontWeight="Bold" RenderTransformOrigin="0.481,0.228" Toggled="BackupToggleSwitch_Toggled"/>
+        <TextBox x:Name="BackupPathTextBox" HorizontalAlignment="Left" Margin="112,68,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="476" IsReadOnly="True" mah:TextBoxHelper.AutoWatermark="True" mah:TextBoxHelper.Watermark="경로 미선택시 자동 백업을 사용하실 수 없습니다."/>
+        <Button x:Name="BackupPathBrowseButton" Content="..." HorizontalAlignment="Left" Margin="593,68,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Height="26" Click="BackupPathBrowseButton_Click"/>
+        <Label Content="                       " HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top"/>
+        
+        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,120,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" Width="667" Height="3" VerticalAlignment="Top" MinHeight="3" >
+            <Separator.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleY="1"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Separator.RenderTransform>
+        </Separator>
+
+        <Label Content="백업 확장자" HorizontalAlignment="Left" Margin="10,128,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
+        <Label Content="목록에 있는 확장자만 자동으로 백업되며, 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,158,0,0" VerticalAlignment="Top"/>
+        <DataGrid x:Name="ExtensionDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="136" Width="578" BorderThickness="1,1,1,1" Margin="10,184,0,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding Extension}" CanUserReorder="False" Header="확장자"/>
+                <DataGridTextColumn Binding="{Binding MaximumSize, Converter={StaticResource DataSizeConverter}}" CanUserReorder="False" Header="파일당 최대 용량"/>
+                <DataGridTextColumn Binding="{Binding Expiration}" CanUserReorder="False" Header="유효기간"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Button x:Name="AddExtensionButton" Content="등록" HorizontalAlignment="Left" Margin="593,184,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExtensionButton_Click"/>
+        <Button x:Name="RemoveExtensionButton" Content="삭제" HorizontalAlignment="Left" Margin="593,216,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExtensionButton_Click"/>
+        <Label Content="                       " HorizontalAlignment="Left" Margin="12,320,0,0" VerticalAlignment="Top"/>
+
+        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,346,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" Width="667" Height="3" VerticalAlignment="Top" MinHeight="3" >
+            <Separator.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleY="1"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Separator.RenderTransform>
+        </Separator>
+
+        <Label Content="백업 예외 폴더" HorizontalAlignment="Left" Margin="10,354,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
+        <Label Content="목록에 있는 경로의 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,384,0,0" VerticalAlignment="Top"/>
+        <DataGrid x:Name="ExceptionPathDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="150" Width="578" BorderThickness="1,1,1,1" Margin="10,410,0,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding Path}" CanUserReorder="False" Header="경로"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Button x:Name="AddExceptionPathButton" Content="등록" HorizontalAlignment="Left" Margin="593,410,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExceptionPathButton_Click"/>
+        <Button x:Name="RemoveExceptionPathButton" Content="삭제" HorizontalAlignment="Left" Margin="593,442,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExceptionPathButton_Click"/>
+
+    </Grid>
+</UserControl>

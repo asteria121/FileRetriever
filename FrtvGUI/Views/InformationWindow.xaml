@@ -1,0 +1,31 @@
+﻿<mah:MetroWindow x:Class="FrtvGUI.Views.InformationWindow"
+        xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FrtvGUI.Views"
+        xmlns:converter="clr-namespace:FrtvGUI.Converter"
+        mc:Ignorable="d"
+        Title="InformationWindow" Height="432" Width="500">
+
+    <Window.Resources>
+        <converter:DataSizeConverter x:Key="DataSizeConverter"/>
+        <converter:DateTimeConverter x:Key="DateTimeConverter"/>
+        <converter:CRC32Converter x:Key="CRC32Converter"/>
+    </Window.Resources>
+
+    <local:DpiDecorator>
+        <Grid>
+            <DataGrid x:Name="fileDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+                Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Top" Height="356" Width="480" BorderThickness="1,1,1,1" Margin="0,10,0,0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Binding="{Binding BackupDate, Converter={StaticResource DateTimeConverter}}" CanUserReorder="False" Header="날짜"/>
+                    <DataGridTextColumn Binding="{Binding OriginalPath}" CanUserReorder="False" Header="내용"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <Button Content="파일 복원하기" HorizontalAlignment="Left" Margin="390,371,0,0" Width="100" Background="#FF348EF6" FontSize="11" Foreground="White" Height="35" VerticalAlignment="Top" RenderTransformOrigin="0.693,0.445"/>
+
+        </Grid>
+    </local:DpiDecorator>
+</mah:MetroWindow>

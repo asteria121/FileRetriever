@@ -1,0 +1,78 @@
+;
+; frtvkrnl inf
+;
+
+[Version]
+Signature   = "$Windows NT$"
+Class       = "ActivityMonitor"
+ClassGuid   = {b86dff51-a31e-4bac-b3cf-e8cfe75c9fc2}
+Provider    = %ProviderString%
+DriverVer   = 11/03/2024,1.0.0.0
+CatalogFile = frtvkrnl.cat
+
+[DestinationDirs]
+DefaultDestDir          = 12
+Frtvkrnl.DriverFiles  = 12            ; %windir%\system32\drivers
+
+;
+; Default install sections
+;
+
+[DefaultInstall]
+OptionDesc          = %ServiceDescription%
+CopyFiles           = Frtvkrnl.DriverFiles
+
+[DefaultInstall.Services]
+AddService          = %ServiceName%,,Frtvkrnl.Service
+
+[DefaultUninstall]
+DelFiles   = Frtvkrnl.DriverFiles
+
+[DefaultUninstall.Services]
+DelService = %ServiceName%,0x200  ; Ensure service is stopped before deleting
+
+;
+; Services Section
+;
+
+[Frtvkrnl.Service]
+DisplayName      = %ServiceName%
+Description      = %ServiceDescription%
+ServiceBinary    = %12%\%DriverName%.sys        ; %windir%\system32\drivers\
+Dependencies     = "FltMgr"
+ServiceType      = 2                            ; SERVICE_FILE_SYSTEM_DRIVER
+StartType        = 3                            ; SERVICE_DEMAND_START
+ErrorControl     = 1                            ; SERVICE_ERROR_NORMAL
+LoadOrderGroup   = "FSFilter Activity Monitor"
+AddReg           = Frtvkrnl.AddRegistry
+
+[Frtvkrnl.AddRegistry]
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%Instance1.Name%,"Altitude",0x00000000,%Instance1.Altitude%
+HKR,"Instances\"%Instance1.Name%,"Flags",0x00010001,%Instance1.Flags%
+
+[Frtvkrnl.DriverFiles]
+%DriverName%.sys
+
+[SourceDisksFiles]
+frtvkrnl.sys = 1,,
+
+[SourceDisksNames]
+1 = %DiskId1%,,,
+
+;
+; String Section
+;
+
+[Strings]
+ProviderString          = "Asteria"
+ServiceDescription      = "FileRetriever File I/O Trace Driver"
+ServiceName             = "FileRetrieverKernel"
+DriverName              = "frtvkrnl"
+DiskId1                 = "FileRetriver Kernel Device Installation Disk"
+
+;Instances specific information.
+DefaultInstance         = "FileRetrieverKernel"
+Instance1.Name          = "FileRetrieverKernel"
+Instance1.Altitude      = "370000"
+Instance1.Flags         = 0x0
