@@ -1,5 +1,4 @@
 ﻿#include <Windows.h>
-#include <fltUser.h>
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,

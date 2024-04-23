@@ -132,12 +132,17 @@ namespace FrtvGUI.Views
                 int res;
                 res = BridgeFunctions.ToggleBackupSwitch(isBackupEnabled);
                 if (res != 0)
-                    System.Windows.MessageBox.Show("Failed to backup on" + res.ToString());
+                {
+                    
+                }
 
                 res = BridgeFunctions.UpdateBackupFolder(backupPath);
                 if (res != 0)
-                    System.Windows.MessageBox.Show("Failed to change backup folder" + res.ToString());
+                {
 
+                }
+
+                // 재연결 시 모든 데이터를 초기화 후 다시 등록한다
                 BackupFile.GetInstance().Clear();
                 BackupExtension.GetInstance().Clear();
                 ExceptionPath.GetInstance().Clear();
@@ -147,10 +152,11 @@ namespace FrtvGUI.Views
                 BackupExtension.LoadDatabaseAsync().GetAwaiter();
                 ExceptionPath.LoadDatabaseAsync().GetAwaiter();
 
-                // 유효기간 만료 데이터베이스 자동 제거 스레드
+                // 유효기간 만료 데이터베이스 자동 제거 쓰레드
                 // 연결 해제 시 Disconnect 콜백 함수가 CancellationToken에 취소 신호를 보냄
                 Task.Run(async() => await ExpirationWatchdog.InitializeWatchdog(TokenSource.Token));
 
+                // DB와 레지스트리에서 취득한 설정을 UI에 업데이트한다.
                 UpdateFileListUI();
                 SettingsView.UpdateBackupSettingsUI();
                 SettingsView.UpdateBackupPathUI();
@@ -163,10 +169,11 @@ namespace FrtvGUI.Views
             }
         }
 
+        // 커널 드라이버 연결 해제 시 호출되는 콜백 함수
         private static void DisconnectCallbackFunction()
         {
+            // 커널 드라이버가 작동중이지 않기 때문에 유효기간 만료 체크 또한 진행하지 않는다.
             TokenSource.Cancel();
-            System.Windows.MessageBox.Show("Watchdog stopped");
         }
 
         // 파일 목록을 새로고침하는 함수
@@ -222,7 +229,7 @@ namespace FrtvGUI.Views
             // MainWindow 객체 할당 후 InitializeComponent() 함수를 호출해야함
             InitializeComponent();
 
-            // 커널 드라이버를 로드한다
+            // 커널 드라이버 서비스 시작
             App.LoadKernelDriver();
 
             // 콜백함수를 DLL에 등록한다
@@ -232,14 +239,25 @@ namespace FrtvGUI.Views
             // DLL이 드라이버와 통신하는 스레드를 생성한다
             Task task = Task.Run(() =>
             {
-                BridgeFunctions.InitializeCommunicator();
+                // 에러가 발생하지 않는 한 아래 함수는 무한 루프 내에서 작동한다.
+                int exitCode = BridgeFunctions.InitializeCommunicator();
+
+                if (exitCode == (int)RTVCOMMRESULT.RTV_COMM_OUT_OF_MEMORY)
+                {
+                    System.Windows.MessageBox.Show("메모리 할당에 실패했습니다.\r\n프로그램을 종료합니다.", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"IOCP FilterGetMessage() 오류 발생.\r\n프로그램을 종료합니다.\r\nHRESULT: {exitCode}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+
+                System.Windows.Application.Current.Shutdown();
             });
 
             // 시스템 트레이 아이콘 생성
             CreateTrayIcon();
         }
 
-        // TODO : 프로그램 실행 및 종료시 자동으로 서비스를 ON/OFF 하도록 설정한다.
         private void CreateTrayIcon()
         {
             // 프로그램 열기 메뉴

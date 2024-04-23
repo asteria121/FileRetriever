@@ -31,6 +31,8 @@ typedef enum RTVCMDCODE
 	RTV_DBG_MESSAGE
 } RTVCMDCODE;
 
+// TODO: 같은 에러코드를 사용하지 않는다.
+// TODO: 커널로부터 온 에러코드를 활용할 수 있도록 한다.
 typedef enum RTVCMDRESULT
 {
 	RTVCMD_SUCCESS,
@@ -38,6 +40,18 @@ typedef enum RTVCMDRESULT
 	RTVCMD_FAIL_OUT_OF_MEMORY,
 	RTVCMD_FAIL_LONG_STRING
 } RTVCMDRESULT;
+
+typedef enum RTVCOMMRESULT
+{
+	RTV_COMM_SUCCESS,
+	RTV_COMM_OUT_OF_MEMORY
+} RTVCOMMRESULT;
+
+typedef enum RTVSENDRESULT
+{
+	RTV_SEND_SUCCESS,
+	RTV_SEND_PORT_NULL
+} RTVSENDRESULT;
 
 // KERNEL -> USER
 // 사용처 : 파일 정보 전송

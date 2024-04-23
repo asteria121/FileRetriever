@@ -1,18 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <Windows.h>
 #include <fltUser.h>
-#include <mutex>
+#include <iostream>
 
-#include <format>
 #include "Protocol.h"
 #include "FrtvCommunicate.h"
 #include "IOCP.h"
 #include "Callbacks.h"
 #include "ConvertPath.h"
-
-#include <iostream>
-#include <exception>
-using namespace std;
 
 static HANDLE fltPort;
 
@@ -25,19 +20,31 @@ wchar_t* ChartoWChar(char* chr)
 	return pWchr;
 }
 
+/// <summary>
+/// 커널 드라이버 메세지 전송 함수 CSTR 버전
+/// </summary>
+/// <param name="rtvCode">메세지 코드</param>
+/// <param name="msg">전송할 메세지</param>
+/// <param name="crc32">파일 CRC32 값 (null 가능)</param>
+/// <param name="fileSize">파일 크기 (확장자 등록에서 사용, null 가능)</param>
+/// <returns></returns>
 __declspec(dllexport) int SendMinifltPortA(int rtvCode, LPCSTR msg, DWORD crc32, LONGLONG fileSize)
 {
-	USER_TO_FLT sent;							ZeroMemory(&sent, sizeof(sent));
-	USER_TO_FLT_REPLY reply;					ZeroMemory(&reply, sizeof(reply));
-	CHAR msgBuffer[4096];	ZeroMemory(msgBuffer, sizeof(msgBuffer));
+	USER_TO_FLT sent;			ZeroMemory(&sent, sizeof(sent));
+	USER_TO_FLT_REPLY reply;	ZeroMemory(&reply, sizeof(reply));
+	CHAR msgBuffer[4096];		ZeroMemory(msgBuffer, sizeof(msgBuffer));
 	DWORD returned_bytes = 0;
 
 	if (fltPort == NULL)
-		return 5;
+		return RTVSENDRESULT::RTV_SEND_PORT_NULL;
 
+	// WCHAR로 변환
 	PWCHAR tmp = ChartoWChar((LPSTR)msg);
 	wcscpy_s(sent.Msg, tmp);
+
+	// ChartoWChar에서 메모리를 할당하였음
 	delete[] tmp;
+
 	sent.RtvCode = rtvCode;
 	sent.Crc32 = crc32;
 	sent.FileSize = fileSize;
@@ -53,38 +60,45 @@ __declspec(dllexport) int SendMinifltPortA(int rtvCode, LPCSTR msg, DWORD crc32,
 
 	if (IS_ERROR(hr))
 	{
-		sprintf_s(msgBuffer, "[FrtvBridge]-[SendMinifltPortA] FilterSendMessage() failed. HRESULT: %d", hr);
-		CallDebugCallback(msgBuffer);
-		return 1;
+		sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() 실패. HRESULT: %d", hr);
+		CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
 	}
 	else
 	{
 		if (returned_bytes > 0)
 		{
 			// 메세지 전송 후 Reply가 있는 경우
-			sprintf_s(msgBuffer, "[FrvBridge]-[SendMinifltPortA] FilterSendMessage() success with reply. Send: %s, Reply: %ws", msg, reply.Msg);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() success with reply. Send: %s, Reply: %ws", msg, reply.Msg);
+			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
 		}
 		else
 		{
 			// 메세지 전송만 한 경우
-			sprintf_s(msgBuffer, "[FrvBridge]-[SendMinifltPortA] FilterSendMessage() success with no reply. Send: %s", msg);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() success with no reply. Send: %s", msg);
+			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
 		}
 	}
 
 	return hr;
 }
 
+/// <summary>
+/// 커널 드라이버 메세지 전송 함수 WSTR 버전
+/// </summary>
+/// <param name="rtvCode">메세지 코드</param>
+/// <param name="msg">전송할 메세지</param>
+/// <param name="crc32">파일 CRC32 값 (null 가능)</param>
+/// <param name="fileSize">파일 크기 (확장자 등록에서 사용, null 가능)</param>
+/// <returns></returns>
 __declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32, LONGLONG fileSize)
 {
 	USER_TO_FLT sent;			ZeroMemory(&sent, sizeof(sent));
 	USER_TO_FLT_REPLY reply;	ZeroMemory(&reply, sizeof(reply));
-	CHAR msgBuffer[4096];	ZeroMemory(msgBuffer, sizeof(msgBuffer));
+	CHAR msgBuffer[4096];		ZeroMemory(msgBuffer, sizeof(msgBuffer));
 	DWORD returned_bytes = 0;
 
 	if (fltPort == NULL)
-		return 5;
+		return RTVSENDRESULT::RTV_SEND_PORT_NULL;
 
 	wcscpy_s(sent.Msg, msg);
 	sent.RtvCode = rtvCode;
@@ -102,28 +116,32 @@ __declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32
 
 	if (IS_ERROR(hr))
 	{
-		sprintf_s(msgBuffer, "[FrtvBridge]-[SendMinifltPortW] FilterSendMessage() failed. HRESULT: %d", hr);
-		CallDebugCallback(msgBuffer);
+		sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() 실패. HRESULT: %d", hr);
+		CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
 	}
 	else
 	{
 		if (returned_bytes > 0)
 		{
 			// 메세지 전송 후 Reply가 있는 경우
-			sprintf_s(msgBuffer, "[FrvBridge]-[SendMinifltPortW] FilterSendMessage() success with reply. Send: %ws, Reply: %ws", msg, reply.Msg);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() success with reply. Send: %ws, Reply: %ws", msg, reply.Msg);
+			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
 		}
 		else
 		{
 			// 메세지 전송만 한 경우
-			sprintf_s(msgBuffer, "[FrvBridge]-[SendMinifltPortW] FilterSendMessage() success with no reply. Send: %ws", msg);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() success with no reply. Send: %ws", msg);
+			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
 		}
 	}
 
 	return hr;
 }
 
+/// <summary>
+/// 커널 드라이버와 연결을 시도하는 함수.
+/// </summary>
+/// <returns></returns>
 __declspec(dllexport) int InitializeCommunicator()
 {
 	// WCHAR 로케일 설정
@@ -131,6 +149,7 @@ __declspec(dllexport) int InitializeCommunicator()
 	_wsetlocale(LC_ALL, L"korean");
 
 	HRESULT hr;
+	int result = RTVCOMMRESULT::RTV_COMM_SUCCESS;
 	DWORD returned_bytes = 0, wait_count = 0;
 	DWORD threadId;
 	PFLT_TO_USER_WRAPPER recv;
@@ -154,22 +173,20 @@ __declspec(dllexport) int InitializeCommunicator()
 		SEND_HB_PARAMS params = { &context, sysinfo.dwNumberOfProcessors };
 		hbThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)SendMinifltHeartbeat, &params, 0, &threadId);
 
-#pragma prefast(suppress:__WARNING_MEMORY_LEAK, "IOCP 쓰레드에서 메모리 할당을 해제해 메모리 누수 발생하지 않음. 경고 무시 가능.")
+#pragma prefast(suppress:__WARNING_MEMORY_LEAK, "IOCP 쓰레드에서 메모리 할당을 해제해 메모리 누수 발생하지 않음. 해당 경고 무시 가능.")
 		recv = (PFLT_TO_USER_WRAPPER)malloc(sizeof(FLT_TO_USER_WRAPPER));
 
 		if (recv == NULL)
 		{
 			hr = ERROR_NOT_ENOUGH_MEMORY;
-			CallDebugCallback("[FrvBridge]-[Communicator] IOCP FLT_TO_USER_WRAPPER memory allocation failed.");
+			CallDebugCallback(LOG_LEVEL_ERROR, "[IOCP] 수신 버퍼 메모리 할당 실패.");
+			result = RTVCOMMRESULT::RTV_COMM_OUT_OF_MEMORY;
 			break;
 		}
 		
 		ZeroMemory(&recv->Ovl, sizeof(OVERLAPPED));
 		
-		//
-		//  Request messages from the filter driver.
-		//
-
+		// IOCP 쓰레드에 메세지 수신을 요청한다
 		hr = FilterGetMessage(context.Port,
 			&recv->hdr,
 			FIELD_OFFSET(FLT_TO_USER_WRAPPER, Ovl),
@@ -177,13 +194,17 @@ __declspec(dllexport) int InitializeCommunicator()
 
 		if (hr != HRESULT_FROM_WIN32(ERROR_IO_PENDING))
 		{
-			sprintf_s(msgBuffer, "[FrvBridge]-[Communicator] FilterGetMessage() failed. HRESULT: %d", hr);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[IOCP] FilterGetMessage() 오류 발생. (HRESULT: %d)", hr);
+			CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
+			result = hr;
 			break;
 		}
-
+		
+		// 연결 완료 후 연결 완료 콜백함수 호출
 		CallConnectCallback();
-		CallDebugCallback("[FrvBridge]-[Communicator] Connect success.");
+		CallDebugCallback(LOG_LEVEL_NORMAL, "[frtvkrnl.sys] 드라이버 연결 성공.");
+
+		// 쓰레드는 무한루프 내에서 돌아가기 때문에 에러가 발생할 때 까지 기다리게 된다.
 		WaitForMultipleObjects(sysinfo.dwNumberOfProcessors, threads, TRUE, INFINITE);
 	}
 
@@ -197,7 +218,7 @@ __declspec(dllexport) int InitializeCommunicator()
 		FilterClose(context.Port);
 	}
 
-	return 0;
+	return result;
 }
 
 __declspec(dllexport) int AddExceptionPath(LPCSTR path)

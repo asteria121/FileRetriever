@@ -61,8 +61,7 @@ FLT_PREOP_CALLBACK_STATUS PreCreateCallback(
                 if ((data->Iopb->Parameters.Create.Options & FILE_DELETE_ON_CLOSE) == FILE_DELETE_ON_CLOSE)
                 {
                     DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_DELETE_ON_CLOSE: CODE: 0x%X %wZ\r\n", data->Iopb->Parameters.Create.Options, fni->Name);
-                    if (BackupIfTarget(fni) == TRUE)
-                        cbStatus = FLT_PREOP_COMPLETE;
+                    BackupIfTarget(fni);
                 }
             }
             else if ((data->Iopb->Parameters.Create.Options >> 24) == FILE_CREATE)
@@ -77,13 +76,13 @@ FLT_PREOP_CALLBACK_STATUS PreCreateCallback(
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_OVERWRITE: CODE: 0x%X %wZ\r\n", data->Iopb->Parameters.Create.Options, fni->Name);
                 if (BackupIfTarget(fni) == TRUE)
-                    cbStatus = FLT_PREOP_COMPLETE;
+                    BackupIfTarget(fni);
             }
             else if ((data->Iopb->Parameters.Create.Options >> 24) == FILE_OVERWRITE_IF)
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_OVERWRITE_IF: CODE: 0x%X %wZ\r\n", data->Iopb->Parameters.Create.Options, fni->Name);
                 if (BackupIfTarget(fni) == TRUE)
-                    cbStatus = FLT_PREOP_COMPLETE;
+                    BackupIfTarget(fni);
             }
         }
     }
@@ -143,8 +142,7 @@ FLT_PREOP_CALLBACK_STATUS PreSetInformationCallback(
             if (((PFILE_DISPOSITION_INFORMATION)data->Iopb->Parameters.SetFileInformation.InfoBuffer)->DeleteFile)
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] DELETEFILE: %wZ\r\n", fni->Name);
-                if (BackupIfTarget(fni) == TRUE)
-                    cbStatus = FLT_PREOP_COMPLETE;
+                BackupIfTarget(fni);
             }
         }
         else if (data->Iopb->Parameters.SetFileInformation.FileInformationClass == FileDispositionInformationEx)
@@ -152,14 +150,13 @@ FLT_PREOP_CALLBACK_STATUS PreSetInformationCallback(
             if (((PFILE_DISPOSITION_INFORMATION_EX)data->Iopb->Parameters.SetFileInformation.InfoBuffer)->Flags & FILE_DISPOSITION_DELETE)
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_DISPOSITION_DELETE: %wZ\r\n", fni->Name);
-                if (BackupIfTarget(fni) == TRUE)
-                    cbStatus = FLT_PREOP_COMPLETE;
+                BackupIfTarget(fni);
             }
         }
     }
 
     FltReleaseFileNameInformation(fni);
-    return FLT_PREOP_SUCCESS_NO_CALLBACK;
+    return cbStatus;
 }
 
 

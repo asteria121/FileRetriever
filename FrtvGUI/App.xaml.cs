@@ -14,6 +14,7 @@ namespace FrtvGUI
     /// </summary>
     public partial class App : System.Windows.Application
     {
+        // 커널 드라이버 서비스를 시작하는 함수
         public static void LoadKernelDriver()
         {
             ServiceController sc = new ServiceController("FileRetrieverKernel");
@@ -39,6 +40,7 @@ namespace FrtvGUI
             }
         }
 
+        // 커널 드라이버 서비스를 종료하는 함수
         public static void UnloadKernelDriver()
         {
             ServiceController sc = new ServiceController("FileRetrieverKernel");

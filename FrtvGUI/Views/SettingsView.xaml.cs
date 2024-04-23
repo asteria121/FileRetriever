@@ -191,7 +191,7 @@ namespace FrtvGUI.Views
 
             // FlyOut이 닫힌 경우 실행되는 이벤트 콜백 함수
             RoutedEventHandler? closingFinishedHandler = null;
-            closingFinishedHandler = async (o, args) =>
+            closingFinishedHandler = (o, args) =>
             {
                 flyout.ClosingFinished -= closingFinishedHandler;
                 MainWindow.Wnd.flyoutsControl.Items.Remove(flyout);

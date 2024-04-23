@@ -13,8 +13,8 @@
 /// <param name="Context">IOCP Worker 함수 인자</param>
 /// <param name="threads">스레드 핸들 변수 주소</param>
 /// <param name="threadCount">스레드 갯수</param>
-/// <returns></returns>
-VOID ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD threadCount)
+/// <returns>실패시 CreateThread() 후 GetLastError() 코드</returns>
+DWORD ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD threadCount)
 {
 	int count = 1;
 	HRESULT hr = 0;
@@ -35,22 +35,19 @@ VOID ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD thre
 
 		if (IS_ERROR(hr))
 		{
-			sprintf_s(msgBuffer, "[FrtvBridge]-[ConnectMinifltProt] FilterConnectCommunicationPort() failed. HRESULT: %d, Reconnecting attempt: %d", hr, count);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[frtvkrnl.sys] 드라이버와 연결 실패. 재연결 시도 횟수: %d, FilterConnectCommunicationPort() HRESULT: %d", count, hr);
+			CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
 		}
 		else
 		{
-			CallDebugCallback("[FrtvBridge]-[ConnectMinifltProt] FilterConnectCommunicationPort() success.");
-
 			// IOCP 포트 생성
 			Context->Completion = CreateIoCompletionPort(Context->Port, NULL, 0, threadCount);
 			// IOCP 스레드를 생성
 			dwResult = CreateIOCPThreads(Context, threads, threadCount);
 			if (dwResult != 0)
 			{
-				// TODO: IOCP 실패시 어떻게 할지 고민
-				sprintf_s(msgBuffer, "[FrtvBridge]-[ConnectMinifltProt] CreateIOCPThreads failed. GetLastError(): %d", dwResult);
-				CallDebugCallback(msgBuffer);
+				sprintf_s(msgBuffer, "[IOCP] 쓰레드 생성 실패. GetLastError(): %d", dwResult);
+				CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
 			}
 			
 			break;
@@ -58,6 +55,8 @@ VOID ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD thre
 		count++;
 		Sleep(3000);
 	}
+
+	return dwResult;
 }
 
 /// <summary>
@@ -83,8 +82,8 @@ VOID SendMinifltHeartbeat(PSEND_HB_PARAMS params)
 		if (IS_ERROR(hr))
 		{
 			// Heartbeat 실패 시 IOCP 쓰레드를 모두 종료한다.
-			sprintf_s(msgBuffer, "[FrtvBridge] Heartbeat failed. HRESULT: %d", hr);
-			CallDebugCallback(msgBuffer);
+			sprintf_s(msgBuffer, "[frtvkrnl.sys] 연결 해제됨. FilterSendMessage() HRESULT: %d", hr);
+			CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
 			// 유저모드 프로그램에 커널 드라이버와 연결이 해제되었음을 알리는 함수를 호출한다.
 			CallDisconnectCallback();
 			for (int i = 0; i < params->ThreadCount; i++)
@@ -98,13 +97,13 @@ VOID SendMinifltHeartbeat(PSEND_HB_PARAMS params)
 		{
 			if (returnedBytes > 0)
 			{
-				sprintf_s(msgBuffer, "[FrvBridge] Heartbeat message received: %ws", reply.Msg);
-				CallDebugCallback(msgBuffer);
+				sprintf_s(msgBuffer, "[frtvkrnl.sys] Heartbeat message received: %ws", reply.Msg);
+				CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
 				ZeroMemory(msgBuffer, sizeof(msgBuffer));
 			}
 			else
 			{
-				CallDebugCallback("[FrtvBridge] Heartbeat success but no message recieved.");
+				CallDebugCallback(LOG_LEVEL_DEBUG, "[frtvkrnl.sys] Heartbeat success but no message recieved.");
 			}
 		}
 	}

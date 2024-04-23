@@ -8,7 +8,7 @@ typedef struct SEND_HB_PARAMS
 	DWORD ThreadCount;
 } SEND_HB_PARAMS, *PSEND_HB_PARAMS;
 
-VOID ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD threadCount);
+DWORD ConnectMinifltPort(PWORKER_IOCP_PARAMS Context, PHANDLE threads, DWORD threadCount);
 VOID SendMinifltHeartbeat(PSEND_HB_PARAMS params);
 
 #endif
