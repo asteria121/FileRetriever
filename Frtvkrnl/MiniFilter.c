@@ -75,14 +75,12 @@ FLT_PREOP_CALLBACK_STATUS PreCreateCallback(
             else if ((data->Iopb->Parameters.Create.Options >> 24) == FILE_OVERWRITE)
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_OVERWRITE: CODE: 0x%X %wZ\r\n", data->Iopb->Parameters.Create.Options, fni->Name);
-                if (BackupIfTarget(fni) == TRUE)
-                    BackupIfTarget(fni);
+                BackupIfTarget(fni);
             }
             else if ((data->Iopb->Parameters.Create.Options >> 24) == FILE_OVERWRITE_IF)
             {
                 DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] FILE_OVERWRITE_IF: CODE: 0x%X %wZ\r\n", data->Iopb->Parameters.Create.Options, fni->Name);
-                if (BackupIfTarget(fni) == TRUE)
-                    BackupIfTarget(fni);
+                BackupIfTarget(fni);
             }
         }
     }
