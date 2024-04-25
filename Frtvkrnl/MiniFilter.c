@@ -32,12 +32,6 @@ FLT_PREOP_CALLBACK_STATUS PreCreateCallback(
     {
         return cbStatus;
     }
-    status = FltParseFileNameInformation(fni);
-    if (!NT_SUCCESS(status))
-    {
-        FltReleaseFileNameInformation(fni);
-        return cbStatus;
-    }
 
     // 백업 폴더를 구한 후 백업 폴더의 경로로 시작하는지 확인
     backupFolder = GetBackupPath();
@@ -116,13 +110,6 @@ FLT_PREOP_CALLBACK_STATUS PreSetInformationCallback(
         return cbStatus;
     }
 
-    status = FltParseFileNameInformation(fni);
-    if (!NT_SUCCESS(status))
-    {
-        FltReleaseFileNameInformation(fni);
-        return cbStatus;
-    }
-
     // 백업 폴더를 구한 후 백업 폴더의 경로로 시작하는지 확인
     backupFolder = GetBackupPath();
     RtlInitUnicodeString(&destPath, backupFolder);
@@ -154,6 +141,7 @@ FLT_PREOP_CALLBACK_STATUS PreSetInformationCallback(
     }
 
     FltReleaseFileNameInformation(fni);
+
     return cbStatus;
 }
 

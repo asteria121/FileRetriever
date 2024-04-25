@@ -4,7 +4,7 @@
 LPWSTR GetBackupPath();
 
 NTSTATUS UpdateBackupPath(
-	_In_	LPCWSTR path
+	_In_	LPCWSTR drive
 );
 
 BOOLEAN IsBackupEnabled();

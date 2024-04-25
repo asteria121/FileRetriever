@@ -17,22 +17,30 @@ namespace FrtvGUI.Views
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
-            if (null != e)
-                e.Handled = true;
-
-            var source = PresentationSource.FromVisual(this);
-
-            if (null != source && null != source.CompositionTarget)
+            try
             {
-                var matrix = source.CompositionTarget.TransformToDevice;
+                if (null != e)
+                    e.Handled = true;
 
-                var dpiTransform = new ScaleTransform(1 / matrix.M11, 1 / matrix.M22);
+                var source = PresentationSource.FromVisual(this);
 
-                if (dpiTransform.CanFreeze)
-                    dpiTransform.Freeze();
+                if (null != source && null != source.CompositionTarget)
+                {
+                    var matrix = source.CompositionTarget.TransformToDevice;
 
-                LayoutTransform = dpiTransform;
+                    var dpiTransform = new ScaleTransform(1 / matrix.M11, 1 / matrix.M22);
+
+                    if (dpiTransform.CanFreeze)
+                        dpiTransform.Freeze();
+
+                    LayoutTransform = dpiTransform;
+                }
             }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message, "ERROR");
+            }
+            
         }
     }
 }

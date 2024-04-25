@@ -69,13 +69,15 @@ namespace FrtvGUI.Views
         }
         public static bool ToggleMenuProgramChanged = false;
 
+        List<BackupFile> lists;
+
 
         // 디버그 메세지를 출력하는 콜백 함수
-        private static void DebugCallbackFunction(string message)
+        private static void DebugCallbackFunction(uint logLevel, string message)
         {
             try
             {
-                var log = new Log(DateTime.Now, 1, message);
+                var log = new Log(DateTime.Now, logLevel, message);
                 log.AddAsync().GetAwaiter();
             }
             catch (Exception e)
@@ -85,31 +87,20 @@ namespace FrtvGUI.Views
 
         }
 
+
         // TODO: DB 쿼리 결과를 커널 드라이버에 전달하도록 한다.
-        // TODO: 쿼리 발생할 떄 마다 새로고침이 아닌 일정 주기로 하는게 어떤지 고민해보기
         private static void DBCallbackFunction(string fileName, uint crc32)
         {
             try
             {
                 var extension = System.IO.Path.GetExtension(fileName);
                 var fi = new FileInfo(fileName);
+                
                 var targetExt = BackupExtension.GetInstance().Where(x => string.Equals(extension.Replace(".", string.Empty), x.Extension)).FirstOrDefault();
                 if (targetExt != null)
                 {
-                    var file = new BackupFile(crc32, fileName, fi.Length, DateTime.Now, DateTime.Now + targetExt.Expiration);
-                    file.AddAsync().GetAwaiter();
-                }
-
-                if (Thread.CurrentThread == Wnd.Dispatcher.Thread) // UI THREAD
-                {
-                    Wnd.fileDataGrid.Items.Refresh();
-                }
-                else // OTHER THREAD
-                {
-                    Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-                    {
-                        Wnd.fileDataGrid.Items.Refresh();
-                    }));
+                    var file = new BackupFile(crc32, fileName, 1, DateTime.Now, DateTime.Now + targetExt.Expiration);
+                    Task.Run(file.AddAsync);
                 }
             }
             catch (Exception e)
@@ -139,13 +130,26 @@ namespace FrtvGUI.Views
                 res = BridgeFunctions.UpdateBackupFolder(backupPath);
                 if (res != 0)
                 {
-
+                    Settings.SetBackupPath(string.Empty);
+                    System.Windows.MessageBox.Show($"백업 폴더 설정에 실패했습니다.\r\n백업 폴더를 다시 지정해주세요.\r\n{backupPath}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
                 // 재연결 시 모든 데이터를 초기화 후 다시 등록한다
-                BackupFile.GetInstance().Clear();
-                BackupExtension.GetInstance().Clear();
-                ExceptionPath.GetInstance().Clear();
+                if (Thread.CurrentThread == Wnd.Dispatcher.Thread) // UI THREAD
+                {
+                    BackupFile.GetInstance().Clear();
+                    BackupExtension.GetInstance().Clear();
+                    ExceptionPath.GetInstance().Clear();
+                }
+                else // OTHER THREAD
+                {
+                    Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                    {
+                        BackupFile.GetInstance().Clear();
+                        BackupExtension.GetInstance().Clear();
+                        ExceptionPath.GetInstance().Clear();
+                    }));
+                }
                 
                 RtvDB.InitializeDatabaseAsync().GetAwaiter();
                 BackupFile.LoadDatabaseAsync().GetAwaiter();
@@ -157,7 +161,6 @@ namespace FrtvGUI.Views
                 Task.Run(async() => await ExpirationWatchdog.InitializeWatchdog(TokenSource.Token));
 
                 // DB와 레지스트리에서 취득한 설정을 UI에 업데이트한다.
-                UpdateFileListUI();
                 SettingsView.UpdateBackupSettingsUI();
                 SettingsView.UpdateBackupPathUI();
                 SettingsView.UpdateExtensionListUI();
@@ -165,7 +168,7 @@ namespace FrtvGUI.Views
             }
             catch (Exception ex)
             {
-                System.Windows.MessageBox.Show(ex.StackTrace.ToString());
+                System.Windows.MessageBox.Show(ex.Message);
             }
         }
 
@@ -253,6 +256,8 @@ namespace FrtvGUI.Views
 
                 System.Windows.Application.Current.Shutdown();
             });
+
+            fileDataGrid.ItemsSource ??= BackupFile.GetInstance();
 
             // 시스템 트레이 아이콘 생성
             CreateTrayIcon();
@@ -355,7 +360,15 @@ namespace FrtvGUI.Views
         // 파일 백업
         private void AddFile_Click(object sender, RoutedEventArgs e)
         {
-
+            if (fileDataGrid.ItemsSource == null)
+            {
+                fileDataGrid.ItemsSource = BackupFile.GetInstance();
+            }
+            else
+            {
+                fileDataGrid.ItemsSource = null;
+            }
+                
             /*
             OpenFileDialog openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
@@ -387,10 +400,6 @@ namespace FrtvGUI.Views
             {
                 System.Windows.MessageBox.Show(ex.Message + Environment.NewLine + ex.StackTrace);
             }
-            finally
-            {
-                fileDataGrid.Items.Refresh();
-            }
         }
 
         private async void RestoreButton_Click(object sender, RoutedEventArgs e)
@@ -410,10 +419,6 @@ namespace FrtvGUI.Views
             catch (Exception ex)
             {
 
-            }
-            finally
-            {
-                fileDataGrid.Items.Refresh();
             }
         }
 

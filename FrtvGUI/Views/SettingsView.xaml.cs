@@ -3,6 +3,7 @@ using FrtvGUI.Elements;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
@@ -17,6 +18,7 @@ namespace FrtvGUI.Views
         private static DataGrid ExtDataGrid;
         private static DataGrid ExpathDataGrid;
         private static ToggleSwitch _BackupToggleSwtch;
+        private static string BackupFolderName = "FrtvBackup";
         public static ToggleSwitch BackupToggleSwtch
         {
             get { return _BackupToggleSwtch; }
@@ -65,16 +67,14 @@ namespace FrtvGUI.Views
             if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
             {
                 BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                BackupPathTxtBox.Text = Settings.GetBackupPath();
-                MainWindow.ToggleMenu.Checked = BackupToggleSwtch.IsOn;
+                BackupPathTxtBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
             }
             else
             {
                 MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
                     BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                    BackupPathTxtBox.Text = Settings.GetBackupPath();
-                    MainWindow.ToggleMenu.Checked = BackupToggleSwtch.IsOn;
+                    BackupPathTxtBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
                 }));
             }
         }
@@ -155,6 +155,8 @@ namespace FrtvGUI.Views
             }
         }
 
+        // TODO: 백업 폴더를 C:\FrtvBackup, D:\FrtvBackup 등으로만 선택할 수 있도록 한다.
+        // 백업 폴더 보호 관련해서 백업 폴더를 Windows 등으로 설정하면 치명적 오류가 생길 수 있음
         private async void BackupPathBrowseButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -169,8 +171,8 @@ namespace FrtvGUI.Views
                     int result = BridgeFunctions.UpdateBackupFolder(dialog.FileName);
                     if (result == 0)
                     {
-                        BackupPathTextBox.Text = dialog.FileName;
                         Settings.SetBackupPath(dialog.FileName);
+                        UpdateBackupPathUI();
                         await MainWindow.Wnd.ShowMessageAsync("성공", $"경로가 변경되었습니다.\r\n{dialog.FileName}", settings: MainWindow.DialogSettings);
                     }
                     else

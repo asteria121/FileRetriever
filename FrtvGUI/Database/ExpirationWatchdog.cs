@@ -34,7 +34,7 @@ namespace FrtvGUI.Database
                             }
 
                             // 삭제 후 파일 목록 새로고침을 해준다
-                            MainWindow.UpdateFileListUI();
+                            //MainWindow.UpdateFileListUI();
                         }
                     }
 

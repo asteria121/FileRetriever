@@ -6,7 +6,7 @@ namespace FrtvGUI
     public static class BridgeFunctions
     {
         // DLL에 콜백 함수 전달을 위한 콜백 함수 대리자
-        public delegate void DebugCallback(string message);
+        public delegate void DebugCallback(uint logLevel, string message);
         public delegate void DBCallback(string fileName, uint crc32);
         public delegate void ConnectCallback();
         public delegate void DisconnectCallback();
@@ -37,5 +37,7 @@ namespace FrtvGUI
         public static extern int AddExtension(string extension, long maximumFileSize);
         [DllImport("FrtvBridge.dll")]
         public static extern int RemoveExtension(string extension);
+        [DllImport("FrtvBridge.dll")]
+        public static extern int Test(int count);
     }
 }

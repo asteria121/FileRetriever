@@ -13,7 +13,7 @@ namespace FrtvGUI.Elements
     public class Log : ILog
     {
         public DateTime Date { get; }
-        public int LogLevel { get; }
+        public uint LogLevel { get; }
         public string Message { get; }
 
         public static List<Log>? instance;
@@ -26,7 +26,7 @@ namespace FrtvGUI.Elements
             return instance;
         }
 
-        public Log(DateTime date, int logLevel, string message)
+        public Log(DateTime date, uint logLevel, string message)
         {
             Date = date;
             LogLevel = logLevel;
@@ -43,7 +43,7 @@ namespace FrtvGUI.Elements
                     try
                     {
                         DateTime date = DateTime.FromBinary(Convert.ToInt64(reader["DATE"]));
-                        int logLevel = Convert.ToInt32(reader["LOGLEVEL"]);
+                        uint logLevel = Convert.ToUInt32(reader["LOGLEVEL"]);
                         string? message = reader["MESSAGE"].ToString();
 
                         if (!string.IsNullOrEmpty(message))

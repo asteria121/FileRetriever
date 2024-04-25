@@ -3,7 +3,7 @@
     public interface ILog
     {
         DateTime Date { get; }
-        int LogLevel { get; }
+        uint LogLevel { get; }
         string Message { get; }
     }
 }

@@ -3,19 +3,10 @@
 
 #define MAX_PATH 260
 
-NTSTATUS GetFileSizeWithUnicodeString(
-    _In_    PUNICODE_STRING srcPath,
-    _Out_   PLONGLONG fileSize
-);
-
-NTSTATUS GetFileSizeWithHandle(
-    _In_    HANDLE sourceHandle,
-    _Out_   PLONGLONG fileSize
-);
-
 NTSTATUS CopyFile(
     _In_    PUNICODE_STRING srcPath,
-    _In_    PUNICODE_STRING dstPath
+    _In_    PUNICODE_STRING dstPath,
+    _In_    LONGLONG maximumFileSize
 );
 
 NTSTATUS DeleteFile(

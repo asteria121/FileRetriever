@@ -10,7 +10,6 @@
 DWORD CreateIOCPThreads(PWORKER_IOCP_PARAMS Context, PHANDLE iocpThreads, DWORD threadCount)
 {
 	DWORD threadId;
-
 	CallDebugCallback(LOG_LEVEL_DEBUG, "[IOCP] Creating IOCP threads.");
 	for (DWORD i = 0; i < threadCount; i++)
 	{
@@ -58,7 +57,7 @@ DWORD FrtvWorker(PWORKER_IOCP_PARAMS Context)
 
 	ZeroMemory(recv, sizeof(FLT_TO_USER_WRAPPER));
 	ZeroMemory(recv_reply, sizeof(FLT_TO_USER_REPLY_WRAPPER));
-
+	
 	while (true)
 	{
 		result = GetQueuedCompletionStatus(Context->Completion, &outSize, &key, &pOvlp, INFINITE);
@@ -80,7 +79,7 @@ DWORD FrtvWorker(PWORKER_IOCP_PARAMS Context)
 
 		message = CONTAINING_RECORD(pOvlp, FLT_TO_USER_WRAPPER, Ovl);
 		data = &message->data;
-
+		
 		if (data->RtvCode == RTV_BACKUP_ALERT)
 		{
 			// 커널 경로를 LPCSTR 형태의 Win32 경로로 변환 후 DB 콜백 실행
@@ -88,7 +87,7 @@ DWORD FrtvWorker(PWORKER_IOCP_PARAMS Context)
 			sprintf_s(msgBuffer, "%ws", dosFilePath);
 			CallDBCallback(msgBuffer, data->Crc32);
 			sprintf_s(msgBuffer, "파일 백업 완료: %ws", dosFilePath);
-			CallDebugCallback(LOG_LEVEL_NORMAL, msgBuffer);
+			//CallDebugCallback(LOG_LEVEL_NORMAL, msgBuffer);
 		}
 		else if (data->RtvCode == RTV_DBG_MESSAGE)
 		{

@@ -17,10 +17,10 @@
         <Label Content="실시간 백업" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
         <Label Content="목록에 있는 확장자만 자동으로 백업되며, 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <mah:ToggleSwitch x:Name="BackupToggleSwitch" Height="57" Header="" Margin="10,40,0,0" VerticalAlignment="Top" Width="110" FontWeight="Bold" RenderTransformOrigin="0.481,0.228" Toggled="BackupToggleSwitch_Toggled"/>
-        <TextBox x:Name="BackupPathTextBox" HorizontalAlignment="Left" Margin="112,68,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="476" IsReadOnly="True" mah:TextBoxHelper.AutoWatermark="True" mah:TextBoxHelper.Watermark="경로 미선택시 자동 백업을 사용하실 수 없습니다."/>
+        <TextBox x:Name="BackupPathTextBox" HorizontalAlignment="Center" Margin="0,68,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="476" IsReadOnly="True" mah:TextBoxHelper.AutoWatermark="True" mah:TextBoxHelper.Watermark="경로 미선택시 자동 백업을 사용하실 수 없습니다."/>
         <Button x:Name="BackupPathBrowseButton" Content="..." HorizontalAlignment="Left" Margin="593,68,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Height="26" Click="BackupPathBrowseButton_Click"/>
         <Label Content="                       " HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top"/>
-        
+
         <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,120,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" Width="667" Height="3" VerticalAlignment="Top" MinHeight="3" >
             <Separator.RenderTransform>
                 <TransformGroup>
