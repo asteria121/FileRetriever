@@ -64,11 +64,33 @@ NTSTATUS ParseUsermodeCommand(
 			RtlStringCchPrintfW(backupPath, MAX_PATH, L"%ws%08lX", backupFolder, cmd->Crc32);
 			RtlInitUnicodeString(&usBackupPath, backupPath);
 
-			status = RestoreFile(&usDestPath, &usBackupPath);
+			status = RestoreFile(&usDestPath, &usBackupPath, FALSE);
 			if (!NT_SUCCESS(status))
 				RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"%ws restore failed.\r\n", backupPath);
 			else
 				RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"%ws restore success.\r\n", backupPath);
+		}
+	}
+	else if (cmd->RtvCode == RTVCMD_FILE_RESTORE_OVERWRITE)
+	{
+		RtlInitUnicodeString(&usDestPath, cmd->Msg);
+
+		if (cmd->Crc32 == 0)
+		{
+			status = RTVCMD_FAIL_INVALID_PARAMETER;
+			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"%ws restore failed.\r\n", backupPath);
+		}
+		else
+		{
+			backupFolder = GetBackupPath();
+			RtlStringCchPrintfW(backupPath, MAX_PATH, L"%ws%08lX", backupFolder, cmd->Crc32);
+			RtlInitUnicodeString(&usBackupPath, backupPath);
+
+			status = RestoreFile(&usDestPath, &usBackupPath, TRUE);
+			if (!NT_SUCCESS(status))
+				RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"%ws restore(overwrite) failed.\r\n", backupPath);
+			else
+				RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"%ws restore(overwrite) success.\r\n", backupPath);
 		}
 	}
 	else if (cmd->RtvCode == RTV_HEARTBEAT)

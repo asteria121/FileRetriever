@@ -11,16 +11,26 @@
 
 // maximumFileSize를 0으로 지정할 경우 파일 크기에 상관없이 복사를 진행한다.
 // maximumFileSize가 0이 아닐 경우 해당 크기보다 srcPath의 파일이 큰 경우 복사하지 않는다.
+// 파일 크기를 구하는 과정이 오버헤드가 심해(파일 핸들 열기 닫기) 이 함수에 통합한다.
 NTSTATUS CopyFile(
-    _In_    PUNICODE_STRING srcPath,
-    _In_    PUNICODE_STRING dstPath,
-    _In_    LONGLONG maximumFileSize
+    _In_        PUNICODE_STRING srcPath,
+    _In_        PUNICODE_STRING dstPath,
+    _In_        BOOLEAN overwriteDst,
+    _In_        LONGLONG maximumFileSize,
+    _Out_opt_   PLONGLONG fileSize
 )
 {
     OBJECT_ATTRIBUTES sourceAttributes, destinationAttributes;
     HANDLE sourceHandle = NULL, destinationHandle = NULL;
     IO_STATUS_BLOCK ioStatus;
     FILE_STANDARD_INFORMATION srcFileInfo = { 0 };
+    ULONG createDisposition;
+
+    // 파일을 덮어쓸지 말지 결정
+    if (overwriteDst == TRUE)
+        createDisposition = FILE_OVERWRITE_IF;
+    else
+        createDisposition = FILE_CREATE;
 
     // 복사할 파일 정보 설정
     InitializeObjectAttributes(&sourceAttributes, srcPath, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
@@ -45,6 +55,10 @@ NTSTATUS CopyFile(
     }
     else
     {
+        // 파일 크기를 포인터로 전달
+        if (fileSize != NULL)
+            *fileSize = srcFileInfo.EndOfFile.QuadPart;
+
         if (srcFileInfo.EndOfFile.QuadPart > maximumFileSize && maximumFileSize != 0)
         {
             return STATUS_UNSUCCESSFUL;
@@ -53,9 +67,10 @@ NTSTATUS CopyFile(
 
     // 복사될 경로의 파일 정보 설정
     InitializeObjectAttributes(&destinationAttributes, dstPath, OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, NULL, NULL);
+
     status = ZwCreateFile(
         &destinationHandle, GENERIC_WRITE, &destinationAttributes, &ioStatus, NULL, FILE_ATTRIBUTE_NORMAL,
-        0, FILE_CREATE, FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0
+        0, createDisposition, FILE_SYNCHRONOUS_IO_NONALERT, NULL, 0
     );
 
     if (!NT_SUCCESS(status)) {
@@ -124,10 +139,11 @@ NTSTATUS DeleteFile(
 
 NTSTATUS RestoreFile(
     _In_    PUNICODE_STRING restorePath,
-    _In_    PUNICODE_STRING backupPath
+    _In_    PUNICODE_STRING backupPath,
+    _In_    BOOLEAN overwriteDst
 )
 {
-    NTSTATUS status = CopyFile(backupPath, restorePath, 0);
+    NTSTATUS status = CopyFile(backupPath, restorePath, overwriteDst, 0, NULL);
     if (!NT_SUCCESS(status))
         return status;
 
@@ -166,7 +182,7 @@ BOOLEAN BackupIfTarget(
     FltParseFileNameInformation(fni);
     
     // 백업 대상 확장자가 아닌 경우 백업하지 않는다
-    pExt = FindExtension(fni->Extension.Buffer, fileSize);
+    pExt = FindExtension(fni->Extension.Buffer);
     if (pExt != NULL)
     {
         // 백업을 위해 CRC32를 구함
@@ -188,7 +204,7 @@ BOOLEAN BackupIfTarget(
         }
 
         // 백업 진행 후 필터포트로 메세지 발송
-        status = CopyFile(&fni->Name, &destPath, pExt->MaximumSize);
+        status = CopyFile(&fni->Name, &destPath, FALSE, pExt->MaximumSize, &fileSize);
         if (NT_SUCCESS(status))
         {
             status = SendFileInformation(fni->Name.Buffer, crc, fileSize);

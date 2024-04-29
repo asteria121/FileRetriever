@@ -13,8 +13,7 @@ VOID InitializeExtensionList()
 }
 
 PEXTENSIONLIST FindExtension(
-	_In_		LPWSTR extension,
-	_In_opt_	LONGLONG fileSize
+	_In_		LPWSTR extension
 )
 {
 	DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] Finding extension: %ws.\r\n", extension);
@@ -27,8 +26,7 @@ PEXTENSIONLIST FindExtension(
 
 		// MaximumSize가 0인 경우 파일 크기에 상관없이 반환함
 		// 또는 fileSize가 0인 경우
-		if (RtlCompareUnicodeString(&ext1, &ext2, FALSE) == 0 &&
-			(fileSize <= currentNode->MaximumSize || currentNode->MaximumSize == 0 || fileSize == 0))
+		if (RtlCompareUnicodeString(&ext1, &ext2, FALSE) == 0)
 		{
 			return currentNode;
 		}
@@ -71,7 +69,7 @@ int RemoveExtension(
 		return EXT_TOO_LONG;
 	}
 
-	PEXTENSIONLIST targetNode = FindExtension(extension, 0);
+	PEXTENSIONLIST targetNode = FindExtension(extension);
 	if (targetNode != NULL)
 	{
 		if (targetNode == extHead)
@@ -130,7 +128,7 @@ int AddNewExtension(
 		return EXT_TOO_LONG;
 	}
 	
-	if (FindExtension(extension, 0) != NULL)
+	if (FindExtension(extension) != NULL)
 	{
 		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] %ws is already exists.\r\n", extension);
 		return EXT_EXISTS;

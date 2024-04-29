@@ -114,27 +114,6 @@ __declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32
 		&returned_bytes
 	);
 
-	if (IS_ERROR(hr))
-	{
-		sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() 실패. HRESULT: %d", hr);
-		CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
-	}
-	else
-	{
-		if (returned_bytes > 0)
-		{
-			// 메세지 전송 후 Reply가 있는 경우
-			sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() success with reply. Send: %ws, Reply: %ws", msg, reply.Msg);
-			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
-		}
-		else
-		{
-			// 메세지 전송만 한 경우
-			sprintf_s(msgBuffer, "[SendMinifltPortW] FilterSendMessage() success with no reply. Send: %ws", msg);
-			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
-		}
-	}
-
 	return hr;
 }
 
@@ -310,7 +289,7 @@ __declspec(dllexport) int UpdateBackupFolder(LPCSTR folder)
 	return result;
 }
 
-__declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32)
+__declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32, BOOLEAN overwriteDst)
 {
 	int result = 0;
 	PWCHAR wDstPath;
@@ -325,7 +304,10 @@ __declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32)
 		return 1;
 	}
 
-	result = SendMinifltPortW(RTVCMD_FILE_RESTORE, devicePath, crc32, NULL);
+	if (overwriteDst == TRUE)
+		result = SendMinifltPortW(RTVCMD_FILE_RESTORE_OVERWRITE, devicePath, crc32, NULL);
+	else
+		result = SendMinifltPortW(RTVCMD_FILE_RESTORE, devicePath, crc32, NULL);
 
 	return result;
 }

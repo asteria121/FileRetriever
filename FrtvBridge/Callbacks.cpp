@@ -6,17 +6,17 @@ ConnectCallback* ccb = NULL;
 DisconnectCallback* dccb = NULL;
 
 // 디버그 메시지 전송 콜백
-void CallDebugCallback(DWORD logLevel, PCSTR message)
+void CallDebugCallback(DWORD logLevel, LPCSTR message)
 {
 	if (dbgcb != NULL)
 		dbgcb(logLevel, message);
 }
 
 // 데이터베이스 등록 요청 콜백 (파일 백업 완료 후)
-void CallDBCallback(LPCSTR fileName, DWORD crc32)
+void CallDBCallback(LPCSTR fileName, LONGLONG fileSize, DWORD crc32)
 {
 	if (dcb != NULL)
-		dcb(fileName, crc32);
+		dcb(fileName, fileSize, crc32);
 }
 
 // 연결 성공시 호출되는 콜백

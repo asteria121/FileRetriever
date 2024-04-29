@@ -210,7 +210,7 @@ namespace FrtvGUI.Views
             var targetList = ExtensionDataGrid.SelectedItems;
             if (targetList.Count == 0)
             {
-                MainWindow.ShowAppBar("ERROR: 적어도 한 개의 확장자를 선택해야합니다.");
+                MainWindow.ShowAppBar("ERROR: 적어도 한 개의 확장자를 선택해야합니다.", System.Windows.Media.Brushes.Red);
                 return;
             }
 
@@ -272,7 +272,7 @@ namespace FrtvGUI.Views
             var targetList = ExceptionPathDataGrid.SelectedItems;
             if (targetList.Count == 0)
             {
-                MainWindow.ShowAppBar("ERROR: 적어도 한 개의 경로를 선택해야합니다.");
+                MainWindow.ShowAppBar("ERROR: 적어도 한 개의 경로를 선택해야합니다.", System.Windows.Media.Brushes.Red);
                 return;
             }
 

@@ -69,8 +69,6 @@ namespace FrtvGUI.Views
         }
         public static bool ToggleMenuProgramChanged = false;
 
-        List<BackupFile> lists;
-
 
         // 디버그 메세지를 출력하는 콜백 함수
         private static void DebugCallbackFunction(uint logLevel, string message)
@@ -89,17 +87,17 @@ namespace FrtvGUI.Views
 
 
         // TODO: DB 쿼리 결과를 커널 드라이버에 전달하도록 한다.
-        private static void DBCallbackFunction(string fileName, uint crc32)
+        private static void DBCallbackFunction(string fileName, long fileSize, uint crc32)
         {
             try
             {
                 var extension = System.IO.Path.GetExtension(fileName);
                 var fi = new FileInfo(fileName);
-                
+
                 var targetExt = BackupExtension.GetInstance().Where(x => string.Equals(extension.Replace(".", string.Empty), x.Extension)).FirstOrDefault();
                 if (targetExt != null)
                 {
-                    var file = new BackupFile(crc32, fileName, 1, DateTime.Now, DateTime.Now + targetExt.Expiration);
+                    var file = new BackupFile(crc32, fileName, fileSize, DateTime.Now, DateTime.Now + targetExt.Expiration);
                     Task.Run(file.AddAsync);
                 }
             }
@@ -124,7 +122,7 @@ namespace FrtvGUI.Views
                 res = BridgeFunctions.ToggleBackupSwitch(isBackupEnabled);
                 if (res != 0)
                 {
-                    
+
                 }
 
                 res = BridgeFunctions.UpdateBackupFolder(backupPath);
@@ -150,7 +148,7 @@ namespace FrtvGUI.Views
                         ExceptionPath.GetInstance().Clear();
                     }));
                 }
-                
+
                 RtvDB.InitializeDatabaseAsync().GetAwaiter();
                 BackupFile.LoadDatabaseAsync().GetAwaiter();
                 BackupExtension.LoadDatabaseAsync().GetAwaiter();
@@ -158,7 +156,7 @@ namespace FrtvGUI.Views
 
                 // 유효기간 만료 데이터베이스 자동 제거 쓰레드
                 // 연결 해제 시 Disconnect 콜백 함수가 CancellationToken에 취소 신호를 보냄
-                Task.Run(async() => await ExpirationWatchdog.InitializeWatchdog(TokenSource.Token));
+                Task.Run(async () => await ExpirationWatchdog.InitializeWatchdog(TokenSource.Token));
 
                 // DB와 레지스트리에서 취득한 설정을 UI에 업데이트한다.
                 SettingsView.UpdateBackupSettingsUI();
@@ -198,10 +196,10 @@ namespace FrtvGUI.Views
         }
 
         // Bar 형식의 메세지를 출력하는 함수
-        public static void ShowAppBar(string message, long autoCloseInterval = 3000, bool isAutoClose = true)
+        public static void ShowAppBar(string message, System.Windows.Media.Brush color, long autoCloseInterval = 3000, bool isAutoClose = true)
         {
             // TODO: 메세지 색상을 지정할 수 있도록 만들 예정
-            var flyout = new AppBarFlyout(message, System.Windows.Media.Brushes.Red);
+            var flyout = new AppBarFlyout(message, color);
             flyout.AutoCloseInterval = autoCloseInterval;
             flyout.IsAutoCloseEnabled = isAutoClose;
 
@@ -357,68 +355,237 @@ namespace FrtvGUI.Views
             };
         }
 
-        // 파일 백업
-        private void AddFile_Click(object sender, RoutedEventArgs e)
-        {
-            if (fileDataGrid.ItemsSource == null)
-            {
-                fileDataGrid.ItemsSource = BackupFile.GetInstance();
-            }
-            else
-            {
-                fileDataGrid.ItemsSource = null;
-            }
-                
-            /*
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            if (openFileDialog.ShowDialog() == true)
-            {
-                FileItem newItem = new FileItem
-                {
-                    FileName = System.IO.Path.GetFileName(openFileDialog.FileName),
-                    FilePath = openFileDialog.FileName
-                };
-                newItem.UpdateFileSize(); // 파일 크기 업데이트
-                fileItems.Add(newItem);
-            }*/
-        }
-
-        // 파일 삭제
         private async void RemoveFile_Click(object sender, RoutedEventArgs e)
         {
-            try
+            int targetCount = fileDataGrid.SelectedItems.Count, successCount = 0;
+            if (targetCount < 1)
             {
-                // 파일 제거 버튼 클릭 이벤트 처리
-                foreach (BackupFile item in fileDataGrid.SelectedItems)
-                {
-                    int result = BridgeFunctions.DeleteBackupFile(item.Crc32);
-                    if (result == 0)
-                        await item.RemoveAsync();
-                }
+                ShowAppBar("ERROR: 적어도 한 개의 파일을 선택해야합니다.", System.Windows.Media.Brushes.Red);
+                return;
             }
-            catch (Exception ex)
+
+            var dialogResult = await this.ShowMessageAsync("파일 삭제", $"정말 {targetCount}개의 백업 파일을 삭제하겠습니까?\r\n이 작업은 되돌릴 수 없습니다.", MessageDialogStyle.AffirmativeAndNegative, settings: DialogSettings);
+            if (dialogResult == MessageDialogResult.Affirmative)
             {
-                System.Windows.MessageBox.Show(ex.Message + Environment.NewLine + ex.StackTrace);
+                ProgressDialogController progressDialog = await this.ShowProgressAsync("Please wait", "파일들을 삭제중입니다. 잠시만 기다려주세요.", settings: DialogSettings);
+                progressDialog.SetProgress(0);
+
+                try
+                {
+                    await Task.Run(async () =>
+                    {
+                        // foreach문 사용 시 삭제 중 리스트가 변경되어 예외가 발생하기 때문에 역순으로 뒤에서부터 처리해야함.
+                        for (int i = targetCount - 1, count = 1; i >= 0; i--, count++)
+                        {
+                            BackupFile? file = null;
+                            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                            {
+                                file = fileDataGrid.SelectedItems[i] as BackupFile;
+                            }));
+
+                            if (file != null)
+                            {
+                                progressDialog.SetMessage($"파일 삭제: {System.IO.Path.GetFileName(file.OriginalPath)}");
+
+                                int result = BridgeFunctions.DeleteBackupFile(file.Crc32);
+                                if (result == 0)
+                                {
+                                    await file.RemoveAsync();
+                                    successCount++;
+                                    // TODO: 로그를 남긴다
+                                }
+                                else
+                                {
+                                    // TODO: 로그를 남긴다
+                                }
+                            }
+
+                            double progressRate = (double)count / (double)targetCount;
+                            progressDialog.SetProgress(progressRate);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await this.ShowMessageAsync("Error", $"파일 삭제 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}");
+                    // TODO: 로그를 남긴다
+                }
+                finally
+                {
+                    if (progressDialog != null)
+                        await progressDialog.CloseAsync();
+                }
+
+                if (successCount == targetCount)
+                {
+                    ShowAppBar($"{targetCount}개의 파일 삭제에 성공했습니다.", System.Windows.Media.Brushes.YellowGreen);
+                }
+                else
+                {
+                    ShowAppBar($"{targetCount}개의 파일 중 {targetCount - successCount}개의 파일 삭제에 실패했습니다.\r\n자세한 내용은 로그를 확인하세요.", System.Windows.Media.Brushes.Orange);
+                }
             }
         }
 
         private async void RestoreButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            int targetCount = fileDataGrid.SelectedItems.Count;
+            if (targetCount < 1)
             {
-                // 파일 제거 버튼 클릭 이벤트 처리
-                foreach (BackupFile item in fileDataGrid.SelectedItems)
-                {
-                    int result = BridgeFunctions.RestoreBackupFile(item.OriginalPath, item.Crc32);
-                    if (result == 0)
-                        await item.RemoveAsync();
-                    else
-                        System.Windows.MessageBox.Show(result.ToString());
-                }
+                ShowAppBar("ERROR: 적어도 한 개의 파일을 선택해야합니다.", System.Windows.Media.Brushes.Red);
+                return;
             }
-            catch (Exception ex)
-            {
 
+            var dialogResult = await this.ShowMessageAsync("파일 복원", $"정말 {targetCount}개의 백업 파일을 복원하겠습니까?", MessageDialogStyle.AffirmativeAndNegative, settings: DialogSettings);
+            if (dialogResult == MessageDialogResult.Affirmative)
+            {
+                ProgressDialogController progressDialog = await this.ShowProgressAsync("Please wait", "파일들을 복원중입니다. 잠시만 기다려주세요.", settings: DialogSettings);
+                progressDialog.SetProgress(0);
+
+                var overwriteDialogSettings = new MetroDialogSettings
+                {
+                    AffirmativeButtonText = "예",
+                    NegativeButtonText = "아니오",
+                    FirstAuxiliaryButtonText = $"모두 예",
+                    SecondAuxiliaryButtonText = $"모두 아니오",
+                    AnimateShow = false,
+                    AnimateHide = false,
+                    ColorScheme = this.MetroDialogOptions.ColorScheme
+                };
+
+                // 덮어 씌울 파일의 개수를 미리 계산한다.
+                int existsCount = 0;
+                int successCount = 0;
+                int passCount = 0;
+                int failCount = 0;
+                bool overwriteAll = false;
+                bool passAll = false;
+
+                try
+                {
+                    foreach (BackupFile file in fileDataGrid.SelectedItems)
+                    {
+                        if (File.Exists(file.OriginalPath))
+                            existsCount++;
+                    }
+
+                    await Task.Run(async () =>
+                    {
+                        // foreach문 사용 시 삭제 중 리스트가 변경되어 예외가 발생하기 때문에 역순으로 뒤에서부터 처리해야함.
+                        for (int i = targetCount - 1, count = 0; i >= 0; i--, count++)
+                        {
+                            BackupFile? file = null;
+                            Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                            {
+                                file = fileDataGrid.SelectedItems[i] as BackupFile;
+                            }));
+
+                            if (file != null)
+                            {
+                                progressDialog.SetMessage($"파일 복원: {file.OriginalPath}");
+
+                                // 파일 복원 중 똑같은 파일이 존재하는 경우
+                                if (File.Exists(file.OriginalPath))
+                                {
+                                    // 모두 덮어쓰기
+                                    if (overwriteAll == true)
+                                    {
+                                        int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, true);
+                                        if (result == 0)
+                                        {
+                                            await file.RemoveAsync();
+                                            successCount++;
+                                        }
+                                        else
+                                        {
+                                            failCount++;
+                                            // TODO: 로그를 남긴다
+                                        }
+                                    }
+                                    else if (passAll == true)
+                                    {
+                                        passCount++;
+                                    }
+                                    // 아직 모두 OO를 선택하지 않은 경우
+                                    else if (passAll == false && overwriteAll == false)
+                                    {
+                                        var dialogResult = await Dispatcher.InvokeAsync(async () =>
+                                        {
+                                            return await this.ShowMessageAsync("파일 복원", $"대상 폴더에 똑같은 이름의 파일이 {existsCount}개 존재합니다. 덮어쓸까요?\r\n{file.OriginalPath}",
+                                                MessageDialogStyle.AffirmativeAndNegativeAndDoubleAuxiliary, settings: overwriteDialogSettings);
+                                        }).Result;
+
+                                        // 덮어쓰기 & 모두 덮어쓰기
+                                        if (dialogResult == MessageDialogResult.Affirmative || dialogResult == MessageDialogResult.FirstAuxiliary)
+                                        {
+                                            int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, true);
+                                            if (result == 0)
+                                            {
+                                                await file.RemoveAsync();
+                                                successCount++;
+                                            }
+                                            else
+                                            {
+                                                failCount++;
+                                                // TODO: 로그를 남긴다
+                                            }
+
+                                            // 모두 덮어쓰기 플래그 활성화
+                                            if (dialogResult == MessageDialogResult.FirstAuxiliary)
+                                                overwriteAll = true;
+                                        }
+                                        // 건너뛰기 & 모두 건너뛰기
+                                        else if (dialogResult == MessageDialogResult.Negative || dialogResult == MessageDialogResult.SecondAuxiliary)
+                                        {
+                                            passCount++;
+
+                                            if (dialogResult == MessageDialogResult.SecondAuxiliary)
+                                                passAll = true;
+                                        }
+                                    }
+                                    existsCount--;
+                                }
+                                // 똑같은 파일이 존재하지 않는 경우
+                                else
+                                {
+                                    int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, false);
+                                    if (result == 0)
+                                    {
+                                        await file.RemoveAsync();
+                                        successCount++;
+                                    }
+                                    else
+                                    {
+                                        failCount++;
+                                        // TODO: 로그를 남긴다
+                                    }
+                                }
+                            }
+
+                            double progressRate = (double)count / (double)targetCount;
+                            progressDialog.SetProgress(progressRate);
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await this.ShowMessageAsync("Error", $"파일 복원 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}");
+                    // TODO: 로그를 남긴다
+                }
+                finally
+                {
+                    if (progressDialog != null)
+                        await progressDialog.CloseAsync();
+                }
+
+                if (failCount == 0)
+                {
+                    ShowAppBar($"{successCount}개의 파일 복원에 성공했습니다. (건너뜀: {passCount})", System.Windows.Media.Brushes.YellowGreen);
+                }
+                else
+                {
+                    ShowAppBar($"{targetCount}개의 파일 중 {failCount}개의 파일 복원에 실패했습니다. (건너뜀: {passCount})\r\n자세한 내용은 로그를 확인하세요.", System.Windows.Media.Brushes.Orange);
+                }
             }
         }
 

@@ -64,8 +64,7 @@ Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visi
                                 <DataGridTextColumn Binding="{Binding ExpirationDate, Converter={StaticResource DateTimeConverter}}" CanUserReorder="False" Header="유효기간"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                        <Button x:Name="RestoreButton" Content="파일 복원하기" HorizontalAlignment="Left" Margin="400,371,0,0" Width="100" Background="#FF348EF6" FontSize="11" Foreground="White" Height="35" VerticalAlignment="Top" RenderTransformOrigin="0.693,0.445" Click="RestoreButton_Click"/>
-                        <Button Content="파일 백업하기" HorizontalAlignment="Left" Margin="505,371,0,0" Width="100" Background="#FF348EF6" Foreground="White" Height="35" VerticalAlignment="Top" FontSize="11" Click="AddFile_Click"/>
+                        <Button x:Name="RestoreButton" Content="파일 복원하기" HorizontalAlignment="Left" Margin="505,371,0,0" Width="100" Background="#FF348EF6" FontSize="11" Foreground="White" Height="35" VerticalAlignment="Top" RenderTransformOrigin="0.693,0.445" Click="RestoreButton_Click"/>
                         <Button Content="파일 삭제하기" HorizontalAlignment="Left" Margin="610,371,0,0" Width="100" Background="#FF348EF6" FontSize="11" Foreground="White" Height="35" VerticalAlignment="Top" Click="RemoveFile_Click"/>
 
                     </Grid>

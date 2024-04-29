@@ -7,7 +7,7 @@ namespace FrtvGUI
     {
         // DLL에 콜백 함수 전달을 위한 콜백 함수 대리자
         public delegate void DebugCallback(uint logLevel, string message);
-        public delegate void DBCallback(string fileName, uint crc32);
+        public delegate void DBCallback(string fileName, long fileSize, uint crc32);
         public delegate void ConnectCallback();
         public delegate void DisconnectCallback();
 
@@ -30,7 +30,7 @@ namespace FrtvGUI
         [DllImport("FrtvBridge.dll")]
         public static extern int UpdateBackupFolder(string folder);
         [DllImport("FrtvBridge.dll")]
-        public static extern int RestoreBackupFile(string dstPath, uint crc32);
+        public static extern int RestoreBackupFile(string dstPath, uint crc32, bool overwriteDst);
         [DllImport("FrtvBridge.dll")]
         public static extern int DeleteBackupFile(uint crc32);
         [DllImport("FrtvBridge.dll")]

@@ -15,7 +15,7 @@ extern "C" __declspec(dllexport) int RemoveExtension(LPCSTR extension);
 
 extern "C" __declspec(dllexport) int ToggleBackupSwitch(int enabled);
 extern "C" __declspec(dllexport) int UpdateBackupFolder(LPCSTR folder);
-extern "C" __declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32);
+extern "C" __declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32, BOOLEAN overwriteDst);
 extern "C" __declspec(dllexport) int DeleteBackupFile(DWORD crc32);
 
 #endif

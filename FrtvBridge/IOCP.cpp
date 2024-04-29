@@ -85,7 +85,7 @@ DWORD FrtvWorker(PWORKER_IOCP_PARAMS Context)
 			// 커널 경로를 LPCSTR 형태의 Win32 경로로 변환 후 DB 콜백 실행
 			GetWin32FileName(data->Msg, dosFilePath);
 			sprintf_s(msgBuffer, "%ws", dosFilePath);
-			CallDBCallback(msgBuffer, data->Crc32);
+			CallDBCallback(msgBuffer, data->FileSize, data->Crc32);
 			sprintf_s(msgBuffer, "파일 백업 완료: %ws", dosFilePath);
 			//CallDebugCallback(LOG_LEVEL_NORMAL, msgBuffer);
 		}

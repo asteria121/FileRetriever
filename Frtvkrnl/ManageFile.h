@@ -4,9 +4,11 @@
 #define MAX_PATH 260
 
 NTSTATUS CopyFile(
-    _In_    PUNICODE_STRING srcPath,
-    _In_    PUNICODE_STRING dstPath,
-    _In_    LONGLONG maximumFileSize
+    _In_        PUNICODE_STRING srcPath,
+    _In_        PUNICODE_STRING dstPath,
+    _In_        BOOLEAN overwriteDst,
+    _In_        LONGLONG maximumFileSize,
+    _Out_opt_   PLONGLONG fileSize
 );
 
 NTSTATUS DeleteFile(
@@ -15,7 +17,8 @@ NTSTATUS DeleteFile(
 
 NTSTATUS RestoreFile(
     _In_    PUNICODE_STRING restorePath,
-    _In_    PUNICODE_STRING backupPath
+    _In_    PUNICODE_STRING backupPath,
+    _In_    BOOLEAN overwriteDst
 );
 
 BOOLEAN BackupIfTarget(

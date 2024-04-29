@@ -23,8 +23,7 @@ typedef enum EXTRESULT
 VOID InitializeExtensionList();
 
 PEXTENSIONLIST FindExtension(
-	_In_		LPWSTR extension,
-	_In_opt_	LONGLONG fileSize
+	_In_		LPWSTR extension
 );
 
 int RemoveExtension(

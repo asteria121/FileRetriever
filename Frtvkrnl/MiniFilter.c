@@ -37,7 +37,8 @@ FLT_PREOP_CALLBACK_STATUS PreCreateCallback(
     backupFolder = GetBackupPath();
     RtlInitUnicodeString(&destPath, backupFolder);
 
-    if (RtlPrefixUnicodeString(&destPath, &fni->Name, FALSE) && destPath.Length > 2)
+    // TODO: 백업폴더 자체 보호도 구현해야함.
+    if ((RtlPrefixUnicodeString(&destPath, &fni->Name, FALSE) && destPath.Length > 2))
     {
         DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] Preop delete prevent.\r\n");
         data->IoStatus.Status = STATUS_ACCESS_DENIED;
