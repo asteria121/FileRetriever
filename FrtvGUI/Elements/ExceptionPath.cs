@@ -34,6 +34,7 @@ namespace FrtvGUI.Elements
                 while (await reader.ReadAsync())
                 {
                     string? path = reader["PATH"].ToString();
+                    int hr = 0;
 
                     if (!string.IsNullOrEmpty(path))
                     {
@@ -41,7 +42,7 @@ namespace FrtvGUI.Elements
                         if (GetInstance().Where(x => string.Equals(x.Path, path)).Count() == 0)
                             GetInstance().Add(new ExceptionPath(path));
 
-                        BridgeFunctions.AddExceptionPath(path);
+                        BridgeFunctions.AddExceptionPath(path, out hr);
                     }
                 }
             }

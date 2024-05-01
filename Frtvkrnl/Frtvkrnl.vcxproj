@@ -111,6 +111,7 @@
     <ClCompile Include="ManageFile.c" />
     <ClCompile Include="MiniFilter.c" />
     <ClCompile Include="MiniFilterPort.c" />
+    <ClCompile Include="SettingsIncludePath.c" />
     <ClCompile Include="SettingsPath.c" />
     <ClCompile Include="Utility.c" />
   </ItemGroup>
@@ -122,6 +123,7 @@
     <ClInclude Include="Protocol.h" />
     <ClInclude Include="SettingsExtension.h" />
     <ClInclude Include="SettingsGeneral.h" />
+    <ClInclude Include="SettingsIncludePath.h" />
     <ClInclude Include="SettingsPath.h" />
     <ClInclude Include="ManageFile.h" />
     <ClInclude Include="MiniFIlter.h" />

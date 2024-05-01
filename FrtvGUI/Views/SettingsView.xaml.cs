@@ -1,4 +1,5 @@
-﻿using FrtvGUI.Database;
+﻿using ControlzEx.Standard;
+using FrtvGUI.Database;
 using FrtvGUI.Elements;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
@@ -15,25 +16,27 @@ namespace FrtvGUI.Views
     /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
-        private static DataGrid ExtDataGrid;
-        private static DataGrid ExpathDataGrid;
+        private static DataGrid _ExtensionDataGrid;
+        private static DataGrid _ExceptionPathDataGrid;
+        private static DataGrid _IncludePathDataGrid;
         private static ToggleSwitch _BackupToggleSwtch;
-        private static string BackupFolderName = "FrtvBackup";
         public static ToggleSwitch BackupToggleSwtch
         {
             get { return _BackupToggleSwtch; }
             private set { _BackupToggleSwtch = value; }
         }
-        private static System.Windows.Controls.TextBox BackupPathTxtBox;
+        private static System.Windows.Controls.TextBox _BackupPathTextBox;
+        private static string BackupFolderName = "FrtvBackup";
         public static bool ToggleMenuProgramChanged = false;
 
         public SettingsView()
         {
             InitializeComponent();
-            ExtDataGrid = ExtensionDataGrid;
-            ExpathDataGrid = ExceptionPathDataGrid;
             BackupToggleSwtch = BackupToggleSwitch;
-            BackupPathTxtBox = BackupPathTextBox;
+            _ExtensionDataGrid = ExtensionDataGrid;
+            _ExceptionPathDataGrid = ExceptionPathDataGrid;
+            _IncludePathDataGrid = IncludePathDataGrid;
+            _BackupPathTextBox = BackupPathTextBox;
         }
 
         public static void UpdateBackupSettingsUI()
@@ -67,14 +70,14 @@ namespace FrtvGUI.Views
             if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
             {
                 BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                BackupPathTxtBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
+                _BackupPathTextBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
             }
             else
             {
                 MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
                     BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                    BackupPathTxtBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
+                    _BackupPathTextBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
                 }));
             }
         }
@@ -83,15 +86,15 @@ namespace FrtvGUI.Views
         {
             if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
             {
-                ExtDataGrid.ItemsSource ??= BackupExtension.GetInstance();
-                ExtDataGrid.Items.Refresh();
+                _ExtensionDataGrid.ItemsSource ??= BackupExtension.GetInstance();
+                _ExtensionDataGrid.Items.Refresh();
             }
             else
             {
                 MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
-                    ExtDataGrid.ItemsSource ??= BackupExtension.GetInstance();
-                    ExtDataGrid.Items.Refresh();
+                    _ExtensionDataGrid.ItemsSource ??= BackupExtension.GetInstance();
+                    _ExtensionDataGrid.Items.Refresh();
                 }));
             }
         }
@@ -100,15 +103,32 @@ namespace FrtvGUI.Views
         {
             if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
             {
-                ExpathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
-                ExpathDataGrid.Items.Refresh();
+                _ExceptionPathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
+                _ExceptionPathDataGrid.Items.Refresh();
             }
             else
             {
                 MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
-                    ExpathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
-                    ExpathDataGrid.Items.Refresh();
+                    _ExceptionPathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
+                    _ExceptionPathDataGrid.Items.Refresh();
+                }));
+            }
+        }
+
+        public static void UpdateIncludePathListUI()
+        {
+            if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
+            {
+                _IncludePathDataGrid.ItemsSource ??= IncludePath.GetInstance();
+                _IncludePathDataGrid.Items.Refresh();
+            }
+            else
+            {
+                MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                {
+                    _IncludePathDataGrid.ItemsSource ??= IncludePath.GetInstance();
+                    _IncludePathDataGrid.Items.Refresh();
                 }));
             }
         }
@@ -118,17 +138,14 @@ namespace FrtvGUI.Views
             // 프로그램이 상태를 변경해도 이벤트가 호출되지 않도록 함
             if (ToggleMenuProgramChanged == false)
             {
+                int hr = 0, result = 0;
                 if (BackupToggleSwitch.IsOn == true)
                 {
-                    int result = BridgeFunctions.ToggleBackupSwitch(1);
-                    if (result == 0)
+                    result = BridgeFunctions.ToggleBackupSwitch(1, out hr);
+                    if (result == 0 && hr == 0)
                     {
                         // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
                         Settings.SetBackupEnabled(true);
-                    }
-                    else
-                    {
-                        await MainWindow.Wnd.ShowMessageAsync("Error", $"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
                     }
                 }
                 else
@@ -137,17 +154,22 @@ namespace FrtvGUI.Views
                     var messageDialogResult = await MainWindow.Wnd.ShowMessageAsync("Info", $"실시간 백업 종료시 자동으로 백업되지 않습니다.\r\n계속 하시겠습니까?", MessageDialogStyle.AffirmativeAndNegative, settings: MainWindow.DialogSettings);
                     if (messageDialogResult == MessageDialogResult.Affirmative)
                     {
-                        int result = BridgeFunctions.ToggleBackupSwitch(0);
-                        if (result == 0)
+                        result = BridgeFunctions.ToggleBackupSwitch(0, out hr);
+                        if (result == 0 && hr == 0)
                         {
                             // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
                             Settings.SetBackupEnabled(false);
                         }
-                        else
-                        {
-                            await MainWindow.Wnd.ShowMessageAsync("Error", $"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
-                        }
                     }
+                }
+
+                if (hr != 0)
+                {
+                    await MainWindow.ShowHresultError(hr);
+                }
+                else if (result != 0)
+                {
+                    await MainWindow.Wnd.ShowMessageAsync("Error", $"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
                 }
 
                 // 최종 레지스트리 값으로 UI와 우클릭 메뉴를 동기화한다.
@@ -167,8 +189,8 @@ namespace FrtvGUI.Views
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
                     // TODO: 파일이 존재할 경우 백업 저장소 파일을 옮길지 물어보기 (옮겨야만함)
-
-                    int result = BridgeFunctions.UpdateBackupFolder(dialog.FileName);
+                    int hr = 0;
+                    int result = BridgeFunctions.UpdateBackupFolder(dialog.FileName, out hr);
                     if (result == 0)
                     {
                         Settings.SetBackupPath(dialog.FileName);
@@ -220,7 +242,8 @@ namespace FrtvGUI.Views
             {
                 foreach (BackupExtension item in targetList)
                 {
-                    int result = BridgeFunctions.RemoveExtension(item.Extension);
+                    int hr = 0;
+                    int result = BridgeFunctions.RemoveExtension(item.Extension, out hr);
                     if (result == 0)
                         await item.RemoveAsync();
                 }
@@ -249,7 +272,8 @@ namespace FrtvGUI.Views
                 // 대화 상자를 표시하고 사용자가 확인을 클릭한 경우 진행
                 if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
                 {
-                    int result = BridgeFunctions.AddExceptionPath(dialog.FileName);
+                    int hr = 0;
+                    int result = BridgeFunctions.AddExceptionPath(dialog.FileName, out hr);
                     if (result == 0)
                     {
                         var path = new ExceptionPath(dialog.FileName);
@@ -280,7 +304,58 @@ namespace FrtvGUI.Views
             {
                 foreach (ExceptionPath path in targetList)
                 {
-                    int result = BridgeFunctions.RemoveExceptionPath(path.Path);
+                    int hr = 0;
+                    int result = BridgeFunctions.RemoveExceptionPath(path.Path, out hr);
+                    if (result == 0)
+                        await path.RemoveAsync();
+                    else
+                        System.Windows.MessageBox.Show($"{result}");
+                }
+            }
+            catch (Exception ex)
+            {
+
+            }
+            finally
+            {
+                ExceptionPathDataGrid.Items.Refresh();
+            }
+        }
+
+        // TODO: 하위폴더 문제를 어케 할것인지 설정
+        private void AddIncludePathButton_Click(object sender, RoutedEventArgs e)
+        {
+            var flyout = new AddIncludePathFlyout();
+
+            // FlyOut이 닫힌 경우 실행되는 이벤트 콜백 함수
+            RoutedEventHandler? closingFinishedHandler = null;
+            closingFinishedHandler = (o, args) =>
+            {
+                flyout.ClosingFinished -= closingFinishedHandler;
+                MainWindow.Wnd.flyoutsControl.Items.Remove(flyout);
+            };
+
+            // FlyOut ClosingFinished 이벤트 등록 및 FlyOut 열기
+            flyout.ClosingFinished += closingFinishedHandler;
+            MainWindow.Wnd.flyoutsControl.Items.Add(flyout);
+            flyout.IsOpen = true;
+        }
+
+        private async void RemoveIncludePathButton_Click(object sender, RoutedEventArgs e)
+        {
+            var targetList = IncludePathDataGrid.SelectedItems;
+            if (targetList.Count == 0)
+            {
+                MainWindow.ShowAppBar("ERROR: 적어도 한 개의 경로를 선택해야합니다.", System.Windows.Media.Brushes.Red);
+                return;
+            }
+
+            try
+            {
+                foreach (IncludePath path in targetList)
+                {
+                    int hr = 0;
+                    int result = BridgeFunctions.RemoveIncludePath(path.Path, out hr);
                     if (result == 0)
                         await path.RemoveAsync();
                 }
@@ -291,7 +366,7 @@ namespace FrtvGUI.Views
             }
             finally
             {
-                ExceptionPathDataGrid.Items.Refresh();
+                IncludePathDataGrid.Items.Refresh();
             }
         }
     }

@@ -6,7 +6,7 @@
              xmlns:converter="clr-namespace:FrtvGUI.Converter"
              xmlns:db="clr-namespace:FrtvGUI.Database"
              xmlns:mah="clr-namespace:MahApps.Metro.Controls;assembly=MahApps.Metro"
-             mc:Ignorable="d" Height="591" Width="700">
+             mc:Ignorable="d" Height="836" Width="620">
 
     <Control.Resources>
         <converter:DataSizeConverter x:Key="DataSizeConverter"/>
@@ -15,13 +15,13 @@
 
     <Grid Background="White">
         <Label Content="실시간 백업" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
-        <Label Content="목록에 있는 확장자만 자동으로 백업되며, 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
+        <Label Content="사용자 설정에 따라 덮어씌워지거나 삭제되는 파일 또는 수정된 일부(프로그램에 따라 다름) 파일을 백업합니다." HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <mah:ToggleSwitch x:Name="BackupToggleSwitch" Height="57" Header="" Margin="10,40,0,0" VerticalAlignment="Top" Width="110" FontWeight="Bold" RenderTransformOrigin="0.481,0.228" Toggled="BackupToggleSwitch_Toggled"/>
-        <TextBox x:Name="BackupPathTextBox" HorizontalAlignment="Center" Margin="0,68,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="476" IsReadOnly="True" mah:TextBoxHelper.AutoWatermark="True" mah:TextBoxHelper.Watermark="경로 미선택시 자동 백업을 사용하실 수 없습니다."/>
-        <Button x:Name="BackupPathBrowseButton" Content="..." HorizontalAlignment="Left" Margin="593,68,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Height="26" Click="BackupPathBrowseButton_Click"/>
+        <TextBox x:Name="BackupPathTextBox" HorizontalAlignment="Left" Margin="96,68,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="425" IsReadOnly="True" mah:TextBoxHelper.AutoWatermark="True" mah:TextBoxHelper.Watermark="경로 미선택시 자동 백업을 사용하실 수 없습니다."/>
+        <Button x:Name="BackupPathBrowseButton" Content="..." HorizontalAlignment="Left" Margin="526,68,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Height="26" Click="BackupPathBrowseButton_Click"/>
         <Label Content="                       " HorizontalAlignment="Left" Margin="10,94,0,0" VerticalAlignment="Top"/>
 
-        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,120,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" Width="667" Height="3" VerticalAlignment="Top" MinHeight="3" >
+        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="0,120,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center" Width="600" Height="3" VerticalAlignment="Top" MinHeight="3" >
             <Separator.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleY="1"/>
@@ -33,20 +33,20 @@
         </Separator>
 
         <Label Content="백업 확장자" HorizontalAlignment="Left" Margin="10,128,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
-        <Label Content="목록에 있는 확장자만 자동으로 백업되며, 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,158,0,0" VerticalAlignment="Top"/>
+        <Label Content="지정된 확장자를 가진 파일을 백업합니다. 최대 용량 지정 시 일정 크기를 넘는 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,158,0,0" VerticalAlignment="Top"/>
         <DataGrid x:Name="ExtensionDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
-        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="136" Width="578" BorderThickness="1,1,1,1" Margin="10,184,0,0">
+        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="136" Width="511" BorderThickness="1,1,1,1" Margin="10,184,0,0">
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding Extension}" CanUserReorder="False" Header="확장자"/>
                 <DataGridTextColumn Binding="{Binding MaximumSize, Converter={StaticResource DataSizeConverter}}" CanUserReorder="False" Header="파일당 최대 용량"/>
                 <DataGridTextColumn Binding="{Binding Expiration}" CanUserReorder="False" Header="유효기간"/>
             </DataGrid.Columns>
         </DataGrid>
-        <Button x:Name="AddExtensionButton" Content="등록" HorizontalAlignment="Left" Margin="593,184,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExtensionButton_Click"/>
-        <Button x:Name="RemoveExtensionButton" Content="삭제" HorizontalAlignment="Left" Margin="593,216,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExtensionButton_Click"/>
+        <Button x:Name="AddExtensionButton" Content="등록" HorizontalAlignment="Left" Margin="526,184,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExtensionButton_Click"/>
+        <Button x:Name="RemoveExtensionButton" Content="삭제" HorizontalAlignment="Left" Margin="526,216,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExtensionButton_Click"/>
         <Label Content="                       " HorizontalAlignment="Left" Margin="12,320,0,0" VerticalAlignment="Top"/>
 
-        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,346,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Left" Width="667" Height="3" VerticalAlignment="Top" MinHeight="3" >
+        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="0,346,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center" Width="599" Height="3" VerticalAlignment="Top" MinHeight="3" >
             <Separator.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform ScaleY="1"/>
@@ -58,15 +58,38 @@
         </Separator>
 
         <Label Content="백업 예외 폴더" HorizontalAlignment="Left" Margin="10,354,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
-        <Label Content="목록에 있는 경로의 파일은 백업되지 않습니다." HorizontalAlignment="Left" Margin="10,384,0,0" VerticalAlignment="Top"/>
+        <Label Content="해당되는 경로의 파일은 백업되지 않습니다. 모든 설정 중 우선적으로 적용됩니다." HorizontalAlignment="Left" Margin="10,384,0,0" VerticalAlignment="Top"/>
         <DataGrid x:Name="ExceptionPathDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
-        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="150" Width="578" BorderThickness="1,1,1,1" Margin="10,410,0,0">
+        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="150" Width="511" BorderThickness="1,1,1,1" Margin="10,410,0,0">
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding Path}" CanUserReorder="False" Header="경로"/>
             </DataGrid.Columns>
         </DataGrid>
-        <Button x:Name="AddExceptionPathButton" Content="등록" HorizontalAlignment="Left" Margin="593,410,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExceptionPathButton_Click"/>
-        <Button x:Name="RemoveExceptionPathButton" Content="삭제" HorizontalAlignment="Left" Margin="593,442,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExceptionPathButton_Click"/>
+        <Button x:Name="AddExceptionPathButton" Content="등록" HorizontalAlignment="Left" Margin="526,409,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddExceptionPathButton_Click"/>
+        <Button x:Name="RemoveExceptionPathButton" Content="삭제" HorizontalAlignment="Left" Margin="526,441,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveExceptionPathButton_Click"/>
+        <Label Content="                       " HorizontalAlignment="Left" Margin="13,560,0,0" VerticalAlignment="Top"/>
+        <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="0,586,0,0" RenderTransformOrigin="0.5,0.5" HorizontalAlignment="Center" Width="599" Height="3" VerticalAlignment="Top" MinHeight="3" >
+            <Separator.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform ScaleY="1"/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform/>
+                </TransformGroup>
+            </Separator.RenderTransform>
+        </Separator>
+        <Label Content="백업 대상 폴더" HorizontalAlignment="Left" Margin="11,594,0,0" VerticalAlignment="Top" FontWeight="Bold" FontSize="15"/>
+        <Label Content="지정된 경로 및 하위폴더의 모든 파일을 백업합니다. 확장자 설정보다 우선적으로 적용됩니다." HorizontalAlignment="Left" Margin="11,624,0,0" VerticalAlignment="Top"/>
+        <DataGrid x:Name="IncludePathDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Recycling" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True"
+            Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left" VerticalAlignment="Top" BorderBrush="Black" Height="150" Width="510" BorderThickness="1,1,1,1" Margin="11,650,0,0">
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding Path}" CanUserReorder="False" Header="경로"/>
+                <DataGridTextColumn Binding="{Binding MaximumSize, Converter={StaticResource DataSizeConverter}}" CanUserReorder="False" Header="파일당 최대 용량"/>
+                <DataGridTextColumn Binding="{Binding Expiration}" CanUserReorder="False" Header="유효기간"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Button x:Name="AddIncludePathButton" Content="등록" HorizontalAlignment="Left" Margin="526,650,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="AddIncludePathButton_Click"/>
+        <Button x:Name="RemoveIncludePathButton" Content="삭제" HorizontalAlignment="Left" Margin="526,682,0,0" VerticalAlignment="Top" Width="84" Background="#FF348EF6" Foreground="White" Click="RemoveIncludePathButton_Click"/>
 
     </Grid>
 </UserControl>

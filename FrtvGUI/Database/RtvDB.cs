@@ -20,8 +20,6 @@ namespace FrtvGUI.Database
             connection = new SQLiteConnection(@"Data Source=GoldenRetriever.db");
             await connection.OpenAsync();
 
-            // TODO: 연결 안된 상황 대비
-
             using (SQLiteCommand cmd = new SQLiteCommand())
             {
                 cmd.Connection = connection;
@@ -32,6 +30,9 @@ namespace FrtvGUI.Database
                 await cmd.ExecuteNonQueryAsync();
 
                 cmd.CommandText = "CREATE TABLE IF NOT EXISTS PATHS (PATH VARCHAR(260) PRIMARY KEY)";
+                await cmd.ExecuteNonQueryAsync();
+
+                cmd.CommandText = "CREATE TABLE IF NOT EXISTS INCLUDEPATHS (PATH VARCHAR(260) PRIMARY KEY, MAXIMUMSIZE INTEGER, EXPIRATION INTEGER)";
                 await cmd.ExecuteNonQueryAsync();
 
                 cmd.CommandText = "CREATE TABLE IF NOT EXISTS LOG (DATE INTEGER PRIRMARY KEY, LOGLEVEL INT, MESSAGE VARCHAR(500))";

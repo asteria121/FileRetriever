@@ -8,6 +8,7 @@
 #include "SettingsGeneral.h"
 #include "SettingsExtension.h"
 #include "SettingsPath.h"
+#include "SettingsIncludePath.h"
 
 // 커널 드라이버가 수신받은 미니필터 메세지를 처리하는 함수
 NTSTATUS ParseUsermodeCommand(
@@ -137,6 +138,22 @@ NTSTATUS ParseUsermodeCommand(
 			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Exception path {%ws} remove failed.\r\n", cmd->Msg);
 		else
 			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Exception path {%ws} remove success.\r\n", cmd->Msg);
+	}
+	else if (cmd->RtvCode == RTVCMD_INCPATH_ADD)
+	{
+		status = AddNewIncludePath(cmd->Msg, cmd->FileSize);
+		if (status != STATUS_SUCCESS)
+			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Include path {%ws} add failed.\r\n", cmd->Msg);
+		else
+			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Include path {%ws} add success.\r\n", cmd->Msg);
+	}
+	else if (cmd->RtvCode == RTVCMD_INCPATH_REMOVE)
+	{
+		status = RemoveIncludePath(cmd->Msg);
+		if (status != STATUS_SUCCESS)
+			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Include path {%ws} remove failed.\r\n", cmd->Msg);
+		else
+			RtlStringCchPrintfW(reply->Msg, maximumReplySize, L"Include path {%ws} remove success.\r\n", cmd->Msg);
 	}
 	else if (cmd->RtvCode == RTVCMD_BACKUP_ON)
 	{

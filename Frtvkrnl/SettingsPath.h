@@ -21,10 +21,13 @@ typedef enum PATHRESULT
 
 VOID InitializePathList();
 
-VOID PrintPathList();
-
 PPATHLIST FindExceptionPath(
-	_In_		LPWSTR exceptionPath
+	_In_	LPWSTR exceptionPath,
+	_In_	BOOLEAN checkSubDirectory
+);
+
+PPATHLIST IsSubdirectory(
+	_In_	LPWSTR exceptionPath
 );
 
 int RemoveExceptionPath(

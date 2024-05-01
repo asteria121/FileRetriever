@@ -21,68 +21,6 @@ wchar_t* ChartoWChar(char* chr)
 }
 
 /// <summary>
-/// 커널 드라이버 메세지 전송 함수 CSTR 버전
-/// </summary>
-/// <param name="rtvCode">메세지 코드</param>
-/// <param name="msg">전송할 메세지</param>
-/// <param name="crc32">파일 CRC32 값 (null 가능)</param>
-/// <param name="fileSize">파일 크기 (확장자 등록에서 사용, null 가능)</param>
-/// <returns></returns>
-__declspec(dllexport) int SendMinifltPortA(int rtvCode, LPCSTR msg, DWORD crc32, LONGLONG fileSize)
-{
-	USER_TO_FLT sent;			ZeroMemory(&sent, sizeof(sent));
-	USER_TO_FLT_REPLY reply;	ZeroMemory(&reply, sizeof(reply));
-	CHAR msgBuffer[4096];		ZeroMemory(msgBuffer, sizeof(msgBuffer));
-	DWORD returned_bytes = 0;
-
-	if (fltPort == NULL)
-		return RTVSENDRESULT::RTV_SEND_PORT_NULL;
-
-	// WCHAR로 변환
-	PWCHAR tmp = ChartoWChar((LPSTR)msg);
-	wcscpy_s(sent.Msg, tmp);
-
-	// ChartoWChar에서 메모리를 할당하였음
-	delete[] tmp;
-
-	sent.RtvCode = rtvCode;
-	sent.Crc32 = crc32;
-	sent.FileSize = fileSize;
-
-	HRESULT hr = FilterSendMessage(
-		fltPort,
-		&sent,
-		sizeof(sent),
-		&reply,
-		sizeof(reply),
-		&returned_bytes
-	);
-
-	if (IS_ERROR(hr))
-	{
-		sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() 실패. HRESULT: %d", hr);
-		CallDebugCallback(LOG_LEVEL_ERROR, msgBuffer);
-	}
-	else
-	{
-		if (returned_bytes > 0)
-		{
-			// 메세지 전송 후 Reply가 있는 경우
-			sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() success with reply. Send: %s, Reply: %ws", msg, reply.Msg);
-			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
-		}
-		else
-		{
-			// 메세지 전송만 한 경우
-			sprintf_s(msgBuffer, "[SendMinifltPortA] FilterSendMessage() success with no reply. Send: %s", msg);
-			CallDebugCallback(LOG_LEVEL_DEBUG, msgBuffer);
-		}
-	}
-
-	return hr;
-}
-
-/// <summary>
 /// 커널 드라이버 메세지 전송 함수 WSTR 버전
 /// </summary>
 /// <param name="rtvCode">메세지 코드</param>
@@ -90,7 +28,7 @@ __declspec(dllexport) int SendMinifltPortA(int rtvCode, LPCSTR msg, DWORD crc32,
 /// <param name="crc32">파일 CRC32 값 (null 가능)</param>
 /// <param name="fileSize">파일 크기 (확장자 등록에서 사용, null 가능)</param>
 /// <returns></returns>
-__declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32, LONGLONG fileSize)
+int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32, LONGLONG fileSize, HRESULT* hr)
 {
 	USER_TO_FLT sent;			ZeroMemory(&sent, sizeof(sent));
 	USER_TO_FLT_REPLY reply;	ZeroMemory(&reply, sizeof(reply));
@@ -104,8 +42,8 @@ __declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32
 	sent.RtvCode = rtvCode;
 	sent.Crc32 = crc32;
 	sent.FileSize = fileSize;
-
-	HRESULT hr = FilterSendMessage(
+	
+	*hr = FilterSendMessage(
 		fltPort,
 		&sent,
 		sizeof(sent),
@@ -114,7 +52,7 @@ __declspec(dllexport) int SendMinifltPortW(int rtvCode, LPCWSTR msg, DWORD crc32
 		&returned_bytes
 	);
 
-	return hr;
+	return reply.RtvResult;
 }
 
 /// <summary>
@@ -200,7 +138,7 @@ __declspec(dllexport) int InitializeCommunicator()
 	return result;
 }
 
-__declspec(dllexport) int AddExceptionPath(LPCSTR path)
+__declspec(dllexport) int AddExceptionPath(LPCSTR path, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wPath;
@@ -209,13 +147,13 @@ __declspec(dllexport) int AddExceptionPath(LPCSTR path)
 	wPath = ChartoWChar((LPSTR)path);
 	GetDeivceFolderName(devicePath, wPath);
 
-	result = SendMinifltPortW(RTVCMD_EXCPATH_ADD, devicePath, NULL, NULL);
+	result = SendMinifltPortW(RTVCMD_EXCPATH_ADD, devicePath, NULL, NULL, hr);
 	delete[] wPath;
 
 	return result;
 }
 
-__declspec(dllexport) int RemoveExceptionPath(LPCSTR path)
+__declspec(dllexport) int RemoveExceptionPath(LPCSTR path, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wPath;
@@ -224,51 +162,77 @@ __declspec(dllexport) int RemoveExceptionPath(LPCSTR path)
 	wPath = ChartoWChar((LPSTR)path);
 	GetDeivceFolderName(devicePath, wPath);
 
-	result = SendMinifltPortW(RTVCMD_EXCPATH_REMOVE, devicePath, NULL, NULL);
+	result = SendMinifltPortW(RTVCMD_EXCPATH_REMOVE, devicePath, NULL, NULL, hr);
 	delete[] wPath;
 
 	return result;
 }
 
-__declspec(dllexport) int AddExtension(LPCSTR extension, LONGLONG maximumFileSize)
+__declspec(dllexport) int AddIncludePath(LPCSTR path, LONGLONG maximumFileSize, HRESULT* hr)
+{
+	int result = 0;
+	PWCHAR wPath;
+	WCHAR devicePath[MAX_PATH];
+	RtlZeroMemory(devicePath, MAX_PATH * sizeof(WCHAR));
+	wPath = ChartoWChar((LPSTR)path);
+	GetDeivceFolderName(devicePath, wPath);
+
+	result = SendMinifltPortW(RTVCMD_INCPATH_ADD, devicePath, NULL, maximumFileSize, hr);
+	delete[] wPath;
+
+	return result;
+}
+
+__declspec(dllexport) int RemoveIncludePath(LPCSTR path, HRESULT* hr)
+{
+	int result = 0;
+	PWCHAR wPath;
+	WCHAR devicePath[MAX_PATH];
+	RtlZeroMemory(devicePath, MAX_PATH * sizeof(WCHAR));
+	wPath = ChartoWChar((LPSTR)path);
+	GetDeivceFolderName(devicePath, wPath);
+
+	result = SendMinifltPortW(RTVCMD_INCPATH_REMOVE, devicePath, NULL, NULL, hr);
+	delete[] wPath;
+
+	return result;
+}
+
+__declspec(dllexport) int AddExtension(LPCSTR extension, LONGLONG maximumFileSize, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wExt;
 	wExt = ChartoWChar((LPSTR)extension);
 
-	result = SendMinifltPortW(RTVCMD_EXTENSION_ADD, wExt, NULL, maximumFileSize);
+	result = SendMinifltPortW(RTVCMD_EXTENSION_ADD, wExt, NULL, maximumFileSize, hr);
 	delete[] wExt;
 
 	return result;
 }
 
-__declspec(dllexport) int RemoveExtension(LPCSTR extension)
+__declspec(dllexport) int RemoveExtension(LPCSTR extension, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wExt;
 	wExt = ChartoWChar((LPSTR)extension);
-	result = SendMinifltPortW(RTVCMD_EXTENSION_REMOVE, wExt, NULL, NULL);
+	result = SendMinifltPortW(RTVCMD_EXTENSION_REMOVE, wExt, NULL, NULL, hr);
 	delete[] wExt;
 
 	return result;
 }
 
-__declspec(dllexport) int ToggleBackupSwitch(int enabled)
+__declspec(dllexport) int ToggleBackupSwitch(int enabled, HRESULT* hr)
 {
 	int result = 0;
 	if (enabled == 0)
-	{
-		result = SendMinifltPortW(RTVCMD_BACKUP_OFF, L"Backup OFF", NULL, NULL);
-	}
+		result = SendMinifltPortW(RTVCMD_BACKUP_OFF, L"Backup OFF", NULL, NULL, hr);
 	else
-	{
-		result = SendMinifltPortW(RTVCMD_BACKUP_ON, L"Backup ON", NULL, NULL);
-	}
+		result = SendMinifltPortW(RTVCMD_BACKUP_ON, L"Backup ON", NULL, NULL, hr);
 
 	return result;
 }
 
-__declspec(dllexport) int UpdateBackupFolder(LPCSTR folder)
+__declspec(dllexport) int UpdateBackupFolder(LPCSTR folder, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wFolder;
@@ -280,16 +244,14 @@ __declspec(dllexport) int UpdateBackupFolder(LPCSTR folder)
 	delete[] wFolder;
 
 	if (deviceResult == FALSE)
-	{
 		return 1;
-	}
 
-	result = SendMinifltPortW(RTVCMD_UPDATE_BACKUP_STORAGE, devicePath, NULL, NULL);
+	result = SendMinifltPortW(RTVCMD_UPDATE_BACKUP_STORAGE, devicePath, NULL, NULL, hr);
 
 	return result;
 }
 
-__declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32, BOOLEAN overwriteDst)
+__declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32, BOOLEAN overwriteDst, HRESULT* hr)
 {
 	int result = 0;
 	PWCHAR wDstPath;
@@ -300,22 +262,20 @@ __declspec(dllexport) int RestoreBackupFile(LPCSTR dstPath, DWORD crc32, BOOLEAN
 	deviceResult = GetDeivceFileName(devicePath, wDstPath);
 	delete[] wDstPath;
 	if (deviceResult == FALSE)
-	{
 		return 1;
-	}
 
 	if (overwriteDst == TRUE)
-		result = SendMinifltPortW(RTVCMD_FILE_RESTORE_OVERWRITE, devicePath, crc32, NULL);
+		result = SendMinifltPortW(RTVCMD_FILE_RESTORE_OVERWRITE, devicePath, crc32, NULL, hr);
 	else
-		result = SendMinifltPortW(RTVCMD_FILE_RESTORE, devicePath, crc32, NULL);
+		result = SendMinifltPortW(RTVCMD_FILE_RESTORE, devicePath, crc32, NULL, hr);
 
 	return result;
 }
 
-__declspec(dllexport) int DeleteBackupFile(DWORD crc32)
+__declspec(dllexport) int DeleteBackupFile(DWORD crc32, HRESULT* hr)
 {
 	int result = 0;
-	result = SendMinifltPortW(RTVCMD_FILE_DELETE_NORMAL, L"Delete cmd", crc32, NULL);
+	result = SendMinifltPortW(RTVCMD_FILE_DELETE_NORMAL, L"Delete cmd", crc32, NULL, hr);
 
 	return result;
 }

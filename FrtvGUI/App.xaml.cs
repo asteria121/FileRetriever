@@ -59,5 +59,10 @@ namespace FrtvGUI
                 sc.Dispose();
             }
         }
+
+        private void App_Exit(object sender, ExitEventArgs e)
+        {
+            UnloadKernelDriver();
+        }
     }
 }

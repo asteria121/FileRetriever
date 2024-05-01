@@ -23,7 +23,8 @@ namespace FrtvGUI.Database
                             while (await reader.ReadAsync())
                             {
                                 uint crc32 = (uint)Convert.ToInt32(reader["CRC32"]);
-                                if (BridgeFunctions.DeleteBackupFile(crc32) == 0)
+                                int hr = 0;
+                                if (BridgeFunctions.DeleteBackupFile(crc32, out hr) == 0)
                                 {
                                     await BackupFile.GetInstance().Where(x => x.Crc32 == crc32).First().RemoveAsync();
                                 }

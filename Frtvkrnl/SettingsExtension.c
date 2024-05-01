@@ -40,23 +40,6 @@ PEXTENSIONLIST FindExtension(
 	return NULL;
 }
 
-VOID PrintExtensionList()
-{
-	PEXTENSIONLIST currentNode = extHead;
-	DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "Extensions: ");
-	while (currentNode != NULL)
-	{
-		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "%ws,", currentNode->Name);
-
-		if (currentNode->NextNode == NULL)
-			break;
-		else
-			currentNode = currentNode->NextNode;
-	}
-
-	DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "\n");
-}
-
 int RemoveExtension(
 	_In_	LPWSTR extension
 )
@@ -106,7 +89,6 @@ int RemoveExtension(
 		RtlZeroMemory(targetNode, sizeof(EXTENSIONLIST));
 		ExFreePoolWithTag(targetNode, 'frtv');
 
-		PrintExtensionList();
 		return EXT_OPERATION_SUCCESS;
 	}
 	else
@@ -117,11 +99,12 @@ int RemoveExtension(
 
 int AddNewExtension(
 	_In_	LPWSTR extension,
-	_In_	LONGLONG fileSize
+	_In_	LONGLONG maximumFileSize
 )
 {
 	SIZE_T extensionLen;
 	NTSTATUS status = RtlStringCchLengthW(extension, MAX_EXTENSION_LEN, &extensionLen);
+	PEXTENSIONLIST newNode = NULL;
 	if (status == STATUS_INVALID_PARAMETER)
 	{
 		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] Extension length is longer than %dB.\r\n", MAX_EXTENSION_LEN);
@@ -135,7 +118,7 @@ int AddNewExtension(
 	}
 
 	// NonPagedPool 
-	PEXTENSIONLIST newNode = (PEXTENSIONLIST)ExAllocatePool2(
+	newNode = (PEXTENSIONLIST)ExAllocatePool2(
 		POOL_FLAG_NON_PAGED,	// 항상 메모리에 존재, 페이지 아웃 혹은 인이 되는데 페이지 아웃이 되면 BSoD 발생
 		sizeof(EXTENSIONLIST),	// 할당 메모리 크기
 		'frtv'					// 메모리 식별자
@@ -146,7 +129,7 @@ int AddNewExtension(
 		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] Memory allocation success.\r\n");
 		RtlZeroMemory(newNode, sizeof(EXTENSIONLIST));
 		RtlStringCchCopyW(newNode->Name, MAX_EXTENSION_LEN, extension);
-		newNode->MaximumSize = fileSize;
+		newNode->MaximumSize = maximumFileSize;
 
 		if (extHead == NULL)
 		{
@@ -165,8 +148,6 @@ int AddNewExtension(
 		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] Memory allocation failed.\r\n");
 		return EXT_OUT_OF_MEMORY;
 	}
-
-	PrintExtensionList();
 
 	return STATUS_SUCCESS;
 }

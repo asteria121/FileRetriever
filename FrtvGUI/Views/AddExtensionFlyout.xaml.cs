@@ -57,7 +57,8 @@ namespace FrtvGUI.Views
 
             try
             {
-                int result = BridgeFunctions.AddExtension(Extension.Text, MaximumFileSizeBytes);
+                int hr = 0;
+                int result = BridgeFunctions.AddExtension(Extension.Text, MaximumFileSizeBytes, out hr);
                 if (result == 0)
                 {
                     var extension = new BackupExtension(Extension.Text, MaximumFileSizeBytes, Expiration);

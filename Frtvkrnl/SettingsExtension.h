@@ -32,7 +32,7 @@ int RemoveExtension(
 
 int AddNewExtension(
 	_In_	LPWSTR extension,
-	_In_	LONGLONG fileSize
+	_In_	LONGLONG maximumFileSize
 );
 
 #endif

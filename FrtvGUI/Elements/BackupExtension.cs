@@ -44,6 +44,7 @@ namespace FrtvGUI.Elements
                 {
                     string? extension = reader["EXTENSION"].ToString();
                     long maximumSize = Convert.ToInt64(reader["MAXIMUMSIZE"]);
+                    int hr = 0;
                     TimeSpan expiration = TimeSpan.FromSeconds(Convert.ToInt64(reader["EXPIRATION"]));
 
                     if (!string.IsNullOrEmpty(extension))
@@ -52,7 +53,7 @@ namespace FrtvGUI.Elements
                         if (GetInstance().Where(x => string.Equals(x.Extension, extension)).Count() == 0)
                             GetInstance().Add(new BackupExtension(extension, maximumSize, expiration));
 
-                        BridgeFunctions.AddExtension(extension, maximumSize);
+                        BridgeFunctions.AddExtension(extension, maximumSize, out hr);
                     }
                 }
             }

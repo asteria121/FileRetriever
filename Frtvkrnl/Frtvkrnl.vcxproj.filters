@@ -31,6 +31,9 @@
     <ClCompile Include="Protocol.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SettingsIncludePath.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CRC32.h">
@@ -58,6 +61,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Protocol.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingsIncludePath.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,6 +5,7 @@
 #include "Protocol.h"
 #include "CRC32.h"
 #include "SettingsExtension.h"
+#include "SettingsIncludePath.h"
 #include "SettingsPath.h"
 #include "SettingsGeneral.h"
 #include "Utility.h"
@@ -163,8 +164,8 @@ BOOLEAN BackupIfTarget(
     ULONG crc = 0;
     LONGLONG fileSize = 0;
     PEXTENSIONLIST pExt = NULL;
+    PINCPATHLIST pInc = NULL;
     DECLARE_UNICODE_STRING_SIZE(destPath, 2000);
-    
 
     if (IsBackupEnabled() == FALSE)
     {
@@ -172,7 +173,7 @@ BOOLEAN BackupIfTarget(
     }
     
     // 백업 하지 않는 폴더 하위에 존재하는 파일일 경우 백업하지 않는다
-    if (FindExceptionPath(fni->Name.Buffer) != NULL)
+    if (FindExceptionPath(fni->Name.Buffer, TRUE) != NULL)
     {
         DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] This is exists on exception path.\r\n");
         return FALSE;
@@ -181,9 +182,11 @@ BOOLEAN BackupIfTarget(
     // 파일 확장자 구하기
     FltParseFileNameInformation(fni);
     
-    // 백업 대상 확장자가 아닌 경우 백업하지 않는다
+    // 백업 대상 확장자인 경우 또는 백업 대상 폴더인 경우에 백업을 진행한다.
+    // 백업 대상 폴더는 예외 폴더가 우선 적용된다. (1. 예외폴더, 2. 확장자, 3. 백업 폴더 순)
     pExt = FindExtension(fni->Extension.Buffer);
-    if (pExt != NULL)
+    pInc = FindIncludePath(fni->Name.Buffer, TRUE);
+    if (pExt != NULL || pInc != NULL)
     {
         // 백업을 위해 CRC32를 구함
         status = GetFileCRC(&fni->Name, &crc);
@@ -204,7 +207,20 @@ BOOLEAN BackupIfTarget(
         }
 
         // 백업 진행 후 필터포트로 메세지 발송
-        status = CopyFile(&fni->Name, &destPath, FALSE, pExt->MaximumSize, &fileSize);
+        // 파일 크기 구분은 CopyFile() 내부에서 진행한다.
+        // 확장자 별 설정이 우선 적용된다. (1. 예외폴더, 2. 확장자, 3. 백업 폴더 순)
+        
+        if (pInc != NULL)
+        {
+            DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] Inlcude path maximum size: %lld\r\n", pInc->MaximumSize);
+            status = CopyFile(&fni->Name, &destPath, FALSE, pInc->MaximumSize, &fileSize);
+        }
+        else
+        {
+            DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[FileRtv] Extension maximum size: %lld\r\n", pExt->MaximumSize);
+            status = CopyFile(&fni->Name, &destPath, FALSE, pExt->MaximumSize, &fileSize);
+        }
+        
         if (NT_SUCCESS(status))
         {
             status = SendFileInformation(fni->Name.Buffer, crc, fileSize);

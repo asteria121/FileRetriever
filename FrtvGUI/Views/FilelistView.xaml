@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="FrtvGUI.Views.FilelistView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:converter="clr-namespace:FrtvGUI.Converter"
+             xmlns:local="clr-namespace:FrtvGUI.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="650">
+    <Control.Resources>
+        <converter:DataSizeConverter x:Key="DataSizeConverter"/>
+        <converter:DateTimeConverter x:Key="DateTimeConverter"/>
+        <converter:CRC32Converter x:Key="CRC32Converter"/>
+    </Control.Resources>
+    <Grid Background="White">
+        <DataGrid x:Name="fileDataGrid" AutoGenerateColumns="False" IsReadOnly="True" VirtualizingPanel.VirtualizationMode="Standard" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.IsVirtualizingWhenGrouping="True" 
+        Background="White" GridLinesVisibility="All" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Visible" VerticalAlignment="Top" Height="390" BorderThickness="1,1,1,1" Margin="10,10,0,0" HeadersVisibility="Column" HorizontalAlignment="Left" Width="630" >
+            <DataGrid.Columns>
+                <DataGridTextColumn Binding="{Binding Crc32, Converter={StaticResource CRC32Converter}}" CanUserReorder="False" Header="CRC32"/>
+                <DataGridTextColumn Binding="{Binding OriginalPath}" CanUserReorder="False" Header="원래 경로"/>
+                <DataGridTextColumn Binding="{Binding FileSize, Converter={StaticResource DataSizeConverter}}" CanUserReorder="False" Header="용량"/>
+                <DataGridTextColumn Binding="{Binding BackupDate, Converter={StaticResource DateTimeConverter}}" CanUserReorder="False" Header="백업일자"/>
+                <DataGridTextColumn Binding="{Binding ExpirationDate, Converter={StaticResource DateTimeConverter}}" CanUserReorder="False" Header="유효기간"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <Button Content="파일 삭제하기" Margin="435,405,0,0" Background="#FF348EF6" FontSize="11" Foreground="White" Click="RemoveFile_Click" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" Width="100"/>
+        <Button Content="파일 복원하기" Margin="540,405,0,0" Background="#FF348EF6" FontSize="11" Foreground="White" RenderTransformOrigin="0.693,0.445" Click="RestoreButton_Click" Height="35" VerticalAlignment="Top" HorizontalAlignment="Left" Width="100"/>
+
+
+    </Grid>
+
+</UserControl>

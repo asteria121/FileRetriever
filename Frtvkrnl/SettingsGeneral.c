@@ -3,7 +3,8 @@
 #include "SettingsGeneral.h"
 #include "Utility.h"
 
-static BOOLEAN isBackupEnabled = TRUE;
+// ±âº»°ª : FALSE
+static BOOLEAN isBackupEnabled = FALSE;
 static WCHAR backupPath[2000];
 
 LPWSTR GetBackupPath()

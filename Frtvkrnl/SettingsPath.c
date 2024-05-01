@@ -12,10 +12,15 @@ VOID InitializePathList()
 	pathTail = NULL;
 }
 
-// TODO: 경로 구분할 때 폴더 이름 맨 뒷자리만 달라도 포함될 수 있음.
-// 하위 폴더인지 확실하게 구분이 필요해보임
+/// <summary>
+/// 백업 예외 경로를 찾는 함수
+/// </summary>
+/// <param name="exceptionPath">찾을 예외 경로</param>
+/// <param name="checkSubDirectory">등록된 경로 중 하위 폴더에 포함될 수 있는 예외 경로도 반환할지</param>
+/// <returns>찾은 경로 or NULL</returns>
 PPATHLIST FindExceptionPath(
-	_In_		LPWSTR exceptionPath
+	_In_	LPWSTR exceptionPath,
+	_In_	BOOLEAN checkSubDirectory
 )
 {
 	DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] Finding path: %ws.\r\n", exceptionPath);
@@ -26,10 +31,20 @@ PPATHLIST FindExceptionPath(
 	while (currentNode != NULL)
 	{
 		RtlInitUnicodeString(&listPath, currentNode->Path);
-		// 윈도우 파일 경로는 대소문자를 구분하지 않음
-
-		if (RtlPrefixUnicodeString(&listPath, &paramPath, FALSE) == TRUE)
-			return currentNode;
+		
+		// 대소문자를 무시한다
+		if (checkSubDirectory == TRUE)
+		{
+			if (RtlPrefixUnicodeString(&listPath, &paramPath, TRUE) == TRUE)
+				return currentNode;
+		}
+		else
+		{
+			// https://learn.microsoft.com/ko-kr/windows-hardware/drivers/ddi/wdm/nf-wdm-rtlcompareunicodestring
+			// 같을 경우 0을 반환함
+			if (RtlCompareUnicodeString(&listPath, &paramPath, TRUE) == 0)
+				return currentNode;
+		}
 
 		if (currentNode->NextNode == NULL)
 			break;
@@ -38,21 +53,6 @@ PPATHLIST FindExceptionPath(
 	}
 
 	return NULL;
-}
-
-VOID PrintPathList()
-{
-	PPATHLIST currentNode = pathHead;
-	DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "There are following paths\n");
-	while (currentNode != NULL)
-	{
-		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "%ws\n", currentNode->Path);
-
-		if (currentNode->NextNode == NULL)
-			break;
-		else
-			currentNode = currentNode->NextNode;
-	}
 }
 
 int RemoveExceptionPath(
@@ -70,7 +70,7 @@ int RemoveExceptionPath(
 		return PATH_TOO_LONG;
 	}
 
-	targetNode = FindExceptionPath(exceptionPath);
+	targetNode = FindExceptionPath(exceptionPath, FALSE);
 	if (targetNode != NULL)
 	{
 		if (targetNode == pathHead)
@@ -108,7 +108,6 @@ int RemoveExceptionPath(
 		RtlZeroMemory(targetNode, sizeof(PATHLIST));
 		ExFreePoolWithTag(targetNode, 'frtv');
 
-		PrintPathList();
 		return PATH_OPERATION_SUCCESS;
 	}
 	else
@@ -133,7 +132,7 @@ int AddNewExceptionPath(
 		return PATH_TOO_LONG;
 	}
 
-	if (FindExceptionPath(exceptionPath) != NULL)
+	if (FindExceptionPath(exceptionPath, FALSE) != NULL)
 	{
 		DBGPRT(DPFLTR_IHVDRIVER_ID, 0, "[LinkedList] %ws is already exists.\r\n", exceptionPath);
 		return PATH_EXISTS;
@@ -183,7 +182,6 @@ int AddNewExceptionPath(
 		return PATH_OUT_OF_MEMORY;
 	}
 
-	PrintPathList();
 	return PATH_OPERATION_SUCCESS;
 }
 
