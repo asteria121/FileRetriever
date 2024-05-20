@@ -1,12 +1,15 @@
 ﻿using ControlzEx.Standard;
 using FrtvGUI.Database;
 using FrtvGUI.Elements;
+using FrtvGUI.Enums;
 using MahApps.Metro.Controls;
 using MahApps.Metro.Controls.Dialogs;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace FrtvGUI.Views
@@ -16,9 +19,6 @@ namespace FrtvGUI.Views
     /// </summary>
     public partial class SettingsView : System.Windows.Controls.UserControl
     {
-        private static DataGrid _ExtensionDataGrid;
-        private static DataGrid _ExceptionPathDataGrid;
-        private static DataGrid _IncludePathDataGrid;
         private static ToggleSwitch _BackupToggleSwtch;
         public static ToggleSwitch BackupToggleSwtch
         {
@@ -32,11 +32,12 @@ namespace FrtvGUI.Views
         public SettingsView()
         {
             InitializeComponent();
-            BackupToggleSwtch = BackupToggleSwitch;
-            _ExtensionDataGrid = ExtensionDataGrid;
-            _ExceptionPathDataGrid = ExceptionPathDataGrid;
-            _IncludePathDataGrid = IncludePathDataGrid;
+            _BackupToggleSwtch = BackupToggleSwitch;
             _BackupPathTextBox = BackupPathTextBox;
+
+            ExtensionDataGrid.ItemsSource ??= BackupExtension.GetInstance();
+            ExceptionPathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
+            IncludePathDataGrid.ItemsSource ??= IncludePath.GetInstance();
         }
 
         public static void UpdateBackupSettingsUI()
@@ -70,115 +71,78 @@ namespace FrtvGUI.Views
             if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
             {
                 BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                _BackupPathTextBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
+                _BackupPathTextBox.Text = System.IO.Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
             }
             else
             {
                 MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
                     BackupToggleSwtch.IsOn = Settings.GetBackupEnabled();
-                    _BackupPathTextBox.Text = Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
-                }));
-            }
-        }
-
-        public static void UpdateExtensionListUI()
-        {
-            if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
-            {
-                _ExtensionDataGrid.ItemsSource ??= BackupExtension.GetInstance();
-                _ExtensionDataGrid.Items.Refresh();
-            }
-            else
-            {
-                MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-                {
-                    _ExtensionDataGrid.ItemsSource ??= BackupExtension.GetInstance();
-                    _ExtensionDataGrid.Items.Refresh();
-                }));
-            }
-        }
-
-        public static void UpdateExceptionPathListUI()
-        {
-            if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
-            {
-                _ExceptionPathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
-                _ExceptionPathDataGrid.Items.Refresh();
-            }
-            else
-            {
-                MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-                {
-                    _ExceptionPathDataGrid.ItemsSource ??= ExceptionPath.GetInstance();
-                    _ExceptionPathDataGrid.Items.Refresh();
-                }));
-            }
-        }
-
-        public static void UpdateIncludePathListUI()
-        {
-            if (Thread.CurrentThread == MainWindow.Wnd.Dispatcher.Thread) // UI THREAD
-            {
-                _IncludePathDataGrid.ItemsSource ??= IncludePath.GetInstance();
-                _IncludePathDataGrid.Items.Refresh();
-            }
-            else
-            {
-                MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
-                {
-                    _IncludePathDataGrid.ItemsSource ??= IncludePath.GetInstance();
-                    _IncludePathDataGrid.Items.Refresh();
+                    _BackupPathTextBox.Text = System.IO.Path.Combine(Settings.GetBackupPath(), BackupFolderName); // 말단 폴더는 FrtvBackup으로 고정됨
                 }));
             }
         }
 
         private async void BackupToggleSwitch_Toggled(object sender, RoutedEventArgs e)
         {
-            // 프로그램이 상태를 변경해도 이벤트가 호출되지 않도록 함
-            if (ToggleMenuProgramChanged == false)
+            try
             {
-                int hr = 0, result = 0;
-                if (BackupToggleSwitch.IsOn == true)
+                // 프로그램이 상태를 변경해도 이벤트가 호출되지 않도록 함
+                if (ToggleMenuProgramChanged == false)
                 {
-                    result = BridgeFunctions.ToggleBackupSwitch(1, out hr);
-                    if (result == 0 && hr == 0)
+                    int hr = 0, result = 0;
+                    if (BackupToggleSwitch.IsOn == true)
                     {
-                        // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
-                        Settings.SetBackupEnabled(true);
-                    }
-                }
-                else
-                {
-                    // 실시간 백업 OFF는 사용자에게 확인하는 절차를 갖는다.
-                    var messageDialogResult = await MainWindow.Wnd.ShowMessageAsync("Info", $"실시간 백업 종료시 자동으로 백업되지 않습니다.\r\n계속 하시겠습니까?", MessageDialogStyle.AffirmativeAndNegative, settings: MainWindow.DialogSettings);
-                    if (messageDialogResult == MessageDialogResult.Affirmative)
-                    {
-                        result = BridgeFunctions.ToggleBackupSwitch(0, out hr);
+                        result = BridgeFunctions.ToggleBackupSwitch(1, out hr);
                         if (result == 0 && hr == 0)
                         {
                             // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
-                            Settings.SetBackupEnabled(false);
+                            Settings.SetBackupEnabled(true);
+                            Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경: ON");
+                            log.AddAsync().GetAwaiter();
                         }
                     }
-                }
+                    else
+                    {
+                        // 실시간 백업 OFF는 사용자에게 확인하는 절차를 갖는다.
+                        var messageDialogResult = await MainWindow.Wnd.ShowMessageAsync("Info", $"실시간 백업 종료시 자동으로 백업되지 않습니다.\r\n계속 하시겠습니까?", MessageDialogStyle.AffirmativeAndNegative, settings: MainWindow.DialogSettings);
+                        if (messageDialogResult == MessageDialogResult.Affirmative)
+                        {
+                            result = BridgeFunctions.ToggleBackupSwitch(0, out hr);
+                            if (result == 0 && hr == 0)
+                            {
+                                // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
+                                Settings.SetBackupEnabled(false);
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경: OFF");
+                                log.AddAsync().GetAwaiter();
+                            }
+                        }
+                    }
 
-                if (hr != 0)
-                {
-                    await MainWindow.ShowHresultError(hr);
-                }
-                else if (result != 0)
-                {
-                    await MainWindow.Wnd.ShowMessageAsync("Error", $"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
-                }
+                    if (hr != 0)
+                    {
+                        await MainWindow.ShowHresultError(hr);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                        log.AddAsync().GetAwaiter();
+                    }
+                    else if (result != 0)
+                    {
+                        await MainWindow.Wnd.ShowMessageAsync("Error", $"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경 실패 (Error Code: {result})");
+                        log.AddAsync().GetAwaiter();
+                    }
 
-                // 최종 레지스트리 값으로 UI와 우클릭 메뉴를 동기화한다.
-                UpdateBackupSettingsUI();
+                    // 최종 레지스트리 값으로 UI와 우클릭 메뉴를 동기화한다.
+                    UpdateBackupSettingsUI();
+                }
+            }
+            catch (Exception ex)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 설정 변경 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
         }
 
-        // TODO: 백업 폴더를 C:\FrtvBackup, D:\FrtvBackup 등으로만 선택할 수 있도록 한다.
-        // 백업 폴더 보호 관련해서 백업 폴더를 Windows 등으로 설정하면 치명적 오류가 생길 수 있음
         private async void BackupPathBrowseButton_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -191,21 +155,34 @@ namespace FrtvGUI.Views
                     // TODO: 파일이 존재할 경우 백업 저장소 파일을 옮길지 물어보기 (옮겨야만함)
                     int hr = 0;
                     int result = BridgeFunctions.UpdateBackupFolder(dialog.FileName, out hr);
-                    if (result == 0)
+                    if (result == 0 && hr == 0)
                     {
                         Settings.SetBackupPath(dialog.FileName);
                         UpdateBackupPathUI();
-                        await MainWindow.Wnd.ShowMessageAsync("성공", $"경로가 변경되었습니다.\r\n{dialog.FileName}", settings: MainWindow.DialogSettings);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 저장소 변경: {dialog.FileName}");
+                        log.AddAsync().GetAwaiter();
+                        await MainWindow.Wnd.ShowMessageAsync("성공", $"백업 저장소가 변경되었습니다.\r\n{dialog.FileName}", settings: MainWindow.DialogSettings);
+                    }
+                    else if (hr != 0)
+                    {
+                        // 드라이버 통신에 실패한 경우 HRESULT 반환
+                        await MainWindow.ShowHresultError(hr);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                        log.AddAsync().GetAwaiter();
                     }
                     else
                     {
+                        // 그 외의 경우 정상적인 과정에서 실패함
                         await MainWindow.Wnd.ShowMessageAsync("실패", $"백업 저장소 변경에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 저장소 변경 실패: {dialog.FileName} (Error Code: {result})");
+                        log.AddAsync().GetAwaiter();
                     }
                 }
             }
             catch (Exception ex)
             {
-                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 저장소 변경 중 오류가 발생했습니다.\r\n{ex.Message}\r\n{ex.StackTrace}", settings: MainWindow.DialogSettings);
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 저장소 변경 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
         }
 
@@ -229,8 +206,8 @@ namespace FrtvGUI.Views
 
         private async void RemoveExtensionButton_Click(object sender, RoutedEventArgs e)
         {
-            var targetList = ExtensionDataGrid.SelectedItems;
-            if (targetList.Count == 0)
+            int targetCount = ExtensionDataGrid.SelectedItems.Count, successCount = 0;
+            if (targetCount < 1)
             {
                 MainWindow.ShowAppBar("ERROR: 적어도 한 개의 확장자를 선택해야합니다.", System.Windows.Media.Brushes.Red);
                 return;
@@ -240,24 +217,67 @@ namespace FrtvGUI.Views
             progressDialog.SetIndeterminate();
             try
             {
-                foreach (BackupExtension item in targetList)
+                await Task.Run(async () =>
                 {
-                    int hr = 0;
-                    int result = BridgeFunctions.RemoveExtension(item.Extension, out hr);
-                    if (result == 0)
-                        await item.RemoveAsync();
-                }
+                    // foreach문 사용 시 삭제 중 리스트가 변경되어 예외가 발생하기 때문에 역순으로 뒤에서부터 처리해야함.
+                    for (int i = targetCount - 1, count = 1; i >= 0; i--, count++)
+                    {
+                        BackupExtension? extension = null;
+                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                        {
+                            extension = ExtensionDataGrid.SelectedItems[i] as BackupExtension;
+                        }));
+
+                        if (extension != null)
+                        {
+                            progressDialog.SetMessage($"확장자 삭제: {extension.Extension}");
+
+                            int hr = 0;
+                            int result = BridgeFunctions.RemoveExtension(extension.Extension, out hr);
+                            if (result == 0 && hr == 0)
+                            {
+                                await extension.RemoveAsync();
+                                successCount++;
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 확장자 삭제: {extension.Extension}");
+                                log.AddAsync().GetAwaiter();
+                            }
+                            else if (hr != 0)
+                            {
+                                // 드라이버 통신에 실패한 경우 HRESULT 반환
+                                await MainWindow.ShowHresultError(hr);
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                log.AddAsync().GetAwaiter();
+                                break;
+                            }
+                            else
+                            {
+                                // 그 외의 경우 정상적인 과정에서 실패함
+                                // for문은 작업 진행 중 실패 시 메세지를 출력하지는 않음
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 확장자 삭제 실패: {extension.Extension} (Error Code: {result})");
+                                log.AddAsync().GetAwaiter();
+                            }
+                        }
+                    }
+                });
             }
             catch (Exception ex)
             {
-                await MainWindow.Wnd.ShowMessageAsync("Error", ex.Message);
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 확장자 삭제 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
             finally
             {
                 if (progressDialog != null)
                     await progressDialog.CloseAsync();
+            }
 
-                ExtensionDataGrid.Items.Refresh();
+            if (successCount == targetCount)
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 확장자 삭제에 성공했습니다.", System.Windows.Media.Brushes.YellowGreen);
+            }
+            else
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 확장자 중 {targetCount - successCount}개의 확장자 삭제에 실패했습니다.\r\n자세한 내용은 로그를 확인하세요.", System.Windows.Media.Brushes.Orange);
             }
         }
 
@@ -274,55 +294,112 @@ namespace FrtvGUI.Views
                 {
                     int hr = 0;
                     int result = BridgeFunctions.AddExceptionPath(dialog.FileName, out hr);
-                    if (result == 0)
+                    if (result == 0 && hr == 0)
                     {
                         var path = new ExceptionPath(dialog.FileName);
-                        await path.AddAsync();
+                        await path.AddAsync(); Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 예외 경로 추가: {dialog.FileName}");
+                        log.AddAsync().GetAwaiter();
+                    }
+                    else if (hr != 0)
+                    {
+                        // 드라이버 통신에 실패한 경우 HRESULT 반환
+                        await MainWindow.ShowHresultError(hr);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                        log.AddAsync().GetAwaiter();
+                    }
+                    else
+                    {
+                        // 그 외의 경우 정상적인 과정에서 실패함
+                        await MainWindow.Wnd.ShowMessageAsync("실패", $"백업 예외 경로 등록에 실패했습니다.\r\nError Code: {result}", settings: MainWindow.DialogSettings);
+                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 예외 경로 추가 실패: {dialog.FileName} (Error Code: {result})");
+                        log.AddAsync().GetAwaiter();
                     }
                 }
             }
             catch (Exception ex)
             {
-
-            }
-            finally
-            {
-                ExceptionPathDataGrid.Items.Refresh();
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 예외 경로 등록 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
         }
 
         private async void RemoveExceptionPathButton_Click(object sender, RoutedEventArgs e)
         {
-            var targetList = ExceptionPathDataGrid.SelectedItems;
-            if (targetList.Count == 0)
+            int targetCount = ExceptionPathDataGrid.SelectedItems.Count, successCount = 0;
+            if (targetCount < 1)
             {
                 MainWindow.ShowAppBar("ERROR: 적어도 한 개의 경로를 선택해야합니다.", System.Windows.Media.Brushes.Red);
                 return;
             }
 
+            var progressDialog = await MainWindow.Wnd.ShowProgressAsync("Please wait", "백업 예외 경로를 삭제하고있습니다. 잠시만 기다려주세요.", settings: MainWindow.DialogSettings);
+            progressDialog.SetIndeterminate();
             try
             {
-                foreach (ExceptionPath path in targetList)
+                await Task.Run(async () =>
                 {
-                    int hr = 0;
-                    int result = BridgeFunctions.RemoveExceptionPath(path.Path, out hr);
-                    if (result == 0)
-                        await path.RemoveAsync();
-                    else
-                        System.Windows.MessageBox.Show($"{result}");
-                }
+                    // foreach문 사용 시 삭제 중 리스트가 변경되어 예외가 발생하기 때문에 역순으로 뒤에서부터 처리해야함.
+                    for (int i = targetCount - 1, count = 1; i >= 0; i--, count++)
+                    {
+                        ExceptionPath? path = null;
+                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                        {
+                            path = ExceptionPathDataGrid.SelectedItems[i] as ExceptionPath;
+                        }));
+
+                        if (path != null)
+                        {
+                            progressDialog.SetMessage($"백업 예외 경로 삭제: {path.Path}");
+
+                            int hr = 0;
+                            int result = BridgeFunctions.RemoveExceptionPath(path.Path, out hr);
+                            if (result == 0 && hr == 0)
+                            {
+                                await path.RemoveAsync();
+                                successCount++;
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 예외 경로 삭제: {path.Path}");
+                                log.AddAsync().GetAwaiter();
+                            }
+                            else if (hr != 0)
+                            {
+                                // 드라이버 통신에 실패한 경우 HRESULT 반환
+                                await MainWindow.ShowHresultError(hr);
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                log.AddAsync().GetAwaiter();
+                                break;
+                            }
+                            else
+                            {
+                                // 그 외의 경우 정상적인 과정에서 실패함
+                                // for문은 작업 진행 중 실패 시 메세지를 출력하지는 않음
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 예외 경로 삭제 실패: {path.Path} (Error Code: {result})");
+                                log.AddAsync().GetAwaiter();
+                            }
+                        }
+                    }
+                });
             }
             catch (Exception ex)
             {
-
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 예외 경로 삭제 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
             finally
             {
-                ExceptionPathDataGrid.Items.Refresh();
+                if (progressDialog != null)
+                    await progressDialog.CloseAsync();
+            }
+
+            if (successCount == targetCount)
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 백업 예외 경로 삭제에 성공했습니다.", System.Windows.Media.Brushes.YellowGreen);
+            }
+            else
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 백업 예외 경로 중 {targetCount - successCount}개의 백업 예외 경로 삭제에 실패했습니다.\r\n자세한 내용은 로그를 확인하세요.", System.Windows.Media.Brushes.Orange);
             }
         }
 
-        // TODO: 하위폴더 문제를 어케 할것인지 설정
         private void AddIncludePathButton_Click(object sender, RoutedEventArgs e)
         {
             var flyout = new AddIncludePathFlyout();
@@ -343,30 +420,78 @@ namespace FrtvGUI.Views
 
         private async void RemoveIncludePathButton_Click(object sender, RoutedEventArgs e)
         {
-            var targetList = IncludePathDataGrid.SelectedItems;
-            if (targetList.Count == 0)
+            int targetCount = IncludePathDataGrid.SelectedItems.Count, successCount = 0;
+            if (targetCount < 1)
             {
                 MainWindow.ShowAppBar("ERROR: 적어도 한 개의 경로를 선택해야합니다.", System.Windows.Media.Brushes.Red);
                 return;
             }
 
+            var progressDialog = await MainWindow.Wnd.ShowProgressAsync("Please wait", "백업 대상 폴더를 삭제하고있습니다. 잠시만 기다려주세요.", settings: MainWindow.DialogSettings);
+            progressDialog.SetIndeterminate();
             try
             {
-                foreach (IncludePath path in targetList)
+                await Task.Run(async () =>
                 {
-                    int hr = 0;
-                    int result = BridgeFunctions.RemoveIncludePath(path.Path, out hr);
-                    if (result == 0)
-                        await path.RemoveAsync();
-                }
+                    // foreach문 사용 시 삭제 중 리스트가 변경되어 예외가 발생하기 때문에 역순으로 뒤에서부터 처리해야함.
+                    for (int i = targetCount - 1, count = 1; i >= 0; i--, count++)
+                    {
+                        IncludePath? path = null;
+                        Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
+                        {
+                            path = IncludePathDataGrid.SelectedItems[i] as IncludePath;
+                        }));
+
+                        if (path != null)
+                        {
+                            progressDialog.SetMessage($"백업 대상 폴더 삭제: {path.Path}");
+
+                            int hr = 0;
+                            int result = BridgeFunctions.RemoveIncludePath(path.Path, out hr);
+                            if (result == 0 && hr == 0)
+                            {
+                                await path.RemoveAsync();
+                                successCount++;
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 대상 폴더 삭제: {path.Path}");
+                                log.AddAsync().GetAwaiter();
+                            }
+                            else if (hr != 0)
+                            {
+                                // 드라이버 통신에 실패한 경우 HRESULT 반환
+                                await MainWindow.ShowHresultError(hr);
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                log.AddAsync().GetAwaiter();
+                                break;
+                            }
+                            else
+                            {
+                                // 그 외의 경우 정상적인 과정에서 실패함
+                                // for문은 작업 진행 중 실패 시 메세지를 출력하지는 않음
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 대상 폴더 삭제 실패: {path.Path} (Error Code: {result})");
+                                log.AddAsync().GetAwaiter();
+                            }
+                        }
+                    }
+                });
             }
             catch (Exception ex)
             {
-
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 대상 폴더 삭제 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
             finally
             {
-                IncludePathDataGrid.Items.Refresh();
+                if (progressDialog != null)
+                    await progressDialog.CloseAsync();
+            }
+
+            if (successCount == targetCount)
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 백업 대상 폴더 삭제에 성공했습니다.", System.Windows.Media.Brushes.YellowGreen);
+            }
+            else
+            {
+                MainWindow.ShowAppBar($"{targetCount}개의 백업 대상 폴더 중 {targetCount - successCount}개의 백업 대상 폴더 삭제에 실패했습니다.\r\n자세한 내용은 로그를 확인하세요.", System.Windows.Media.Brushes.Orange);
             }
         }
     }

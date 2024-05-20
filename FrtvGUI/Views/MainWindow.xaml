@@ -228,13 +228,9 @@
                             <local:FilelistView />
                         </mah:HamburgerMenuIconItem.Tag>
                     </mah:HamburgerMenuIconItem>
-                    <mah:HamburgerMenuIconItem Icon="{iconPacks:Material Kind=Cog}" Label="프로그램 설정">
+                    <mah:HamburgerMenuIconItem Icon="{iconPacks:Material Kind=Cog}" Label="백업 설정">
                         <mah:HamburgerMenuIconItem.Tag>
-
-
                             <local:SettingsView />
-
-
                         </mah:HamburgerMenuIconItem.Tag>
                     </mah:HamburgerMenuIconItem>
 

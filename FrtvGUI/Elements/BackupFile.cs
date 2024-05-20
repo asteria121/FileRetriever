@@ -59,8 +59,6 @@ namespace FrtvGUI.Elements
             set { expirationdate = value; NotifyPropertyChanged(nameof(ExpirationDate)); }
         }
 
-        private static ConcurrentQueue<BackupFile> queue = new ConcurrentQueue<BackupFile>();
-
         private static ObservableCollection<BackupFile> instance = new ObservableCollection<BackupFile>();
         public static ObservableCollection<BackupFile> GetInstance()
         {
@@ -72,11 +70,11 @@ namespace FrtvGUI.Elements
 
         public BackupFile(uint crc32, string originalPath, long fileSize, DateTime backupDate, DateTime expirationDate)
         {
-            Crc32 = crc32;
-            OriginalPath = originalPath;
-            FileSize = fileSize;
-            BackupDate = backupDate;
-            ExpirationDate = expirationDate;
+            this.crc32 = crc32;
+            this.originalpath = originalPath;
+            this.filesize = fileSize;
+            this.backupdate = backupDate;
+            this.expirationdate = expirationDate;
         }
 
         public static async Task LoadDatabaseAsync()
@@ -100,9 +98,9 @@ namespace FrtvGUI.Elements
                             // 이 함수는 재연결 콜백 함수에서도 호출되기 때문에 중복되어 추가되지 않도록 주의해야한다.
                             // 재연결 시 모든 데이터를 초기화 후 다시 등록한다
 
-
                             if (GetInstance().Where(x => x.Crc32 ==crc32).Count() == 0)
                             {
+                                // 데이터 바인딩으로 연결되어 있어 UI 쓰레드에서 추가하는게 좋음.
                                 Views.MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                                 {
                                     GetInstance().Add(new BackupFile(crc32, originalPath, fileSize, backupDate, expirationDate));
@@ -130,6 +128,7 @@ namespace FrtvGUI.Elements
                 cmd.Parameters.AddWithValue("@EXPIRATIONDATE", ExpirationDate.ToBinary());
                 await cmd.ExecuteNonQueryAsync();
 
+                // 데이터 바인딩으로 연결되어 있어 UI 쓰레드에서 추가하는게 좋음.
                 Views.MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
                     GetInstance().Add(this);
@@ -146,11 +145,11 @@ namespace FrtvGUI.Elements
 
                 await cmd.ExecuteNonQueryAsync();
 
+                // 데이터 바인딩으로 연결되어 있어 UI 쓰레드에서 추가하는게 좋음.
                 Views.MainWindow.Wnd.Dispatcher.Invoke(DispatcherPriority.Normal, new Action(delegate
                 {
                     GetInstance().Remove(this);
                 }));
-                
             }
         }
     }

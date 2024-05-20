@@ -1,19 +1,7 @@
 ﻿using FrtvGUI.Elements;
-using MahApps.Metro.Controls;
+using FrtvGUI.Enums;
 using MahApps.Metro.Controls.Dialogs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace FrtvGUI.Views
 {
@@ -59,10 +47,12 @@ namespace FrtvGUI.Views
             {
                 int hr = 0;
                 int result = BridgeFunctions.AddExtension(Extension.Text, MaximumFileSizeBytes, out hr);
-                if (result == 0)
+                if (result == 0 && hr == 0)
                 {
                     var extension = new BackupExtension(Extension.Text, MaximumFileSizeBytes, Expiration);
                     await extension.AddAsync();
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 확장자 추가: {Extension.Text}");
+                    log.AddAsync().GetAwaiter();
 
                     Extension.Text = string.Empty;
                     MaximumFileSize.Value = null;
@@ -71,18 +61,41 @@ namespace FrtvGUI.Views
                     ExpirationHour.Value = null;
                     ExpirationMinute.Value = null;
                 }
+                else if (hr != 0)
+                {
+                    // 드라이버 통신에 실패한 경우 HRESULT 반환
+                    await MainWindow.ShowHresultError(hr);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                    log.AddAsync().GetAwaiter();
+                }
                 else
                 {
-                    await MainWindow.Wnd.ShowMessageAsync("실패했습니다.", "실패", settings: MainWindow.DialogSettings);
+                    // 그 외의 경우 정상적인 과정에서 실패함
+                    await DisplayExtensionAddErrorByResult(result);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 확장자 추가 실패: {Extension.Text} (Error Code: {result})");
+                    log.AddAsync().GetAwaiter();
                 }
             }
             catch (Exception ex)
             {
-
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 확장자 등록 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
-            finally
+        }
+
+        private async Task DisplayExtensionAddErrorByResult(int result)
+        {
+            if (result == (int)ExtensionResult.EXT_EXISTS)
             {
-                SettingsView.UpdateExtensionListUI();
+                await MainWindow.Wnd.ShowMessageAsync("Error", "이미 등록된 확장자입니다.", settings: MainWindow.DialogSettings);
+            }
+            else if (result == (int)IncludePathResult.INCPATH_TOO_LONG)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", "확장자가 너무 깁니다. (24바이트 초과)", settings: MainWindow.DialogSettings);
+            }
+            else if (result == (int)IncludePathResult.INCPATH_OUT_OF_MEMORY)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", "컴퓨터의 메모리가 부족합니다.", settings: MainWindow.DialogSettings);
             }
         }
     }

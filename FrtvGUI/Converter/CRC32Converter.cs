@@ -8,7 +8,7 @@ namespace FrtvGUI.Converter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return System.Convert.ToUInt32(value).ToString("X");
+            return System.Convert.ToUInt32(value).ToString("X8");
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

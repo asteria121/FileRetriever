@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using FrtvGUI.Enums;
 
 namespace FrtvGUI.Views
 {
@@ -65,15 +66,27 @@ namespace FrtvGUI.Views
 
                                 int hr = 0;
                                 int result = BridgeFunctions.DeleteBackupFile(file.Crc32, out hr);
-                                if (result == 0)
+                                if (result == 0 && hr == 0)
                                 {
                                     await file.RemoveAsync();
                                     successCount++;
-                                    // TODO: 로그를 남긴다
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 삭제: {file.OriginalPath} ({file.Crc32})");
+                                    log.AddAsync().GetAwaiter();
+                                }
+                                else if (hr != 0)
+                                {
+                                    // 드라이버 통신에 실패한 경우 HRESULT 반환
+                                    await MainWindow.ShowHresultError(hr);
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                    log.AddAsync().GetAwaiter();
+                                    break;
                                 }
                                 else
                                 {
-                                    // TODO: 로그를 남긴다
+                                    // 그 외의 경우 정상적인 과정에서 실패함
+                                    // for문은 작업 진행 중 실패 시 메세지를 출력하지는 않음
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 삭제 실패: {file.Crc32} (NTSTATUS: 0x{result:X8})");
+                                    log.AddAsync().GetAwaiter();
                                 }
                             }
 
@@ -84,8 +97,8 @@ namespace FrtvGUI.Views
                 }
                 catch (Exception ex)
                 {
-                    await MainWindow.Wnd.ShowMessageAsync("Error", $"파일 삭제 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}");
-                    // TODO: 로그를 남긴다
+                    await MainWindow.Wnd.ShowMessageAsync("Error", $"파일 삭제 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                    await Log.PrintExceptionLogFileAsync(ex);
                 }
                 finally
                 {
@@ -160,7 +173,9 @@ namespace FrtvGUI.Views
                             if (file != null)
                             {
                                 progressDialog.SetMessage($"파일 복원: {file.OriginalPath}");
+                                bool doRestore = false, isOverwrite = false;
 
+                                // TODO: 똑같은 경로의 파일 여러개를 동시에 백업할 경우 어떻게 할지
                                 // 파일 복원 중 똑같은 파일이 존재하는 경우
                                 if (File.Exists(file.OriginalPath))
                                 {
@@ -183,23 +198,15 @@ namespace FrtvGUI.Views
                                     // 덮어 씌우기 또는 모두 덮어씌우기
                                     if (overwriteAll == true || dialogResult == MessageDialogResult.Affirmative)
                                     {
-                                        int hr = 0;
-                                        int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, true, out hr);
-                                        if (result == 0)
-                                        {
-                                            await file.RemoveAsync();
-                                            successCount++;
-                                        }
-                                        else
-                                        {
-                                            failCount++;
-                                            // TODO: 로그를 남긴다
-                                        }
+                                        doRestore = true;
+                                        isOverwrite = true;
                                     }
                                     // 건너뛰기 또는 모두 건너뛰기
                                     else if (passAll == true || dialogResult == MessageDialogResult.Negative)
                                     {
                                         passCount++;
+                                        doRestore = false;
+                                        doRestore = false;
                                     }
 
                                     existsCount--;
@@ -207,17 +214,36 @@ namespace FrtvGUI.Views
                                 // 똑같은 파일이 존재하지 않는 경우
                                 else
                                 {
+                                    doRestore = true;
+                                    isOverwrite = false;
+                                }
+
+                                if (doRestore == true)
+                                {
                                     int hr = 0;
-                                    int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, false, out hr);
-                                    if (result == 0)
+                                    int result = BridgeFunctions.RestoreBackupFile(file.OriginalPath, file.Crc32, isOverwrite, out hr);
+                                    if (result == 0 && hr == 0)
                                     {
                                         await file.RemoveAsync();
                                         successCount++;
+                                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 복원: {file.OriginalPath} ({file.Crc32})");
+                                        log.AddAsync().GetAwaiter();
+                                    }
+                                    else if (hr != 0)
+                                    {
+                                        // 드라이버 통신에 실패한 경우 HRESULT 반환
+                                        await MainWindow.ShowHresultError(hr);
+                                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                        log.AddAsync().GetAwaiter();
+                                        break;
                                     }
                                     else
                                     {
+                                        // 그 외의 경우 정상적인 과정에서 실패함
+                                        // for문은 작업 진행 중 실패 시 메세지를 출력하지는 않음
                                         failCount++;
-                                        // TODO: 로그를 남긴다
+                                        Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 복원 실패: {file.Crc32} (NTSTATUS: 0x{result:X8})");
+                                        log.AddAsync().GetAwaiter();
                                     }
                                 }
                             }
@@ -229,8 +255,9 @@ namespace FrtvGUI.Views
                 }
                 catch (Exception ex)
                 {
-                    await MainWindow.Wnd.ShowMessageAsync("Error", $"파일 복원 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}");
-                    // TODO: 로그를 남긴다
+                    await MainWindow.Wnd.ShowMessageAsync("Error", $"파일 복원 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                    await Log.PrintExceptionLogFileAsync(ex);
+                    await Log.PrintExceptionLogFileAsync(ex);
                 }
                 finally
                 {

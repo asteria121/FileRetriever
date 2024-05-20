@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Threading;
 using System.Windows;
+using FrtvGUI.Enums;
 
 namespace FrtvGUI
 {
@@ -33,8 +34,6 @@ namespace FrtvGUI
 
         }
 
-
-        // TODO: DB 쿼리 결과를 커널 드라이버에 전달하도록 한다.
         public static void DBCallbackFunction(string fileName, long fileSize, uint crc32)
         {
             try
@@ -76,19 +75,35 @@ namespace FrtvGUI
                 if (Settings.GetBackupEnabled() == true)
                     isBackupEnabled = 1;
                 
-                // TODO 설정 손상시 로그 또는 알림 추가하기
                 int res;
                 res = BridgeFunctions.ToggleBackupSwitch(isBackupEnabled, out hr);
-                if (res != 0)
+                if (res != 0 && hr != 0)
                 {
-
+                    System.Windows.MessageBox.Show($"드라이버와 통신에 실패했습니다.\r\nHRESULT: 0x{hr:X8}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                    log.AddAsync().GetAwaiter();
+                }
+                else if (hr == 0 && res != 0)
+                {
+                    Settings.SetBackupPath(string.Empty);
+                    System.Windows.MessageBox.Show($"알 수 없는 이유로 실시간 백업 설정에 실패했습니다.\r\nErrorCode: {res}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 초기 설정 실패 (Error Code: {res})");
+                    log.AddAsync().GetAwaiter();
                 }
 
                 res = BridgeFunctions.UpdateBackupFolder(backupPath, out hr);
-                if (res != 0)
+                if (res != 0 && hr != 0)
+                {
+                    System.Windows.MessageBox.Show($"드라이버와 통신에 실패했습니다.\r\nHRESULT: 0x{hr:X8}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                    log.AddAsync().GetAwaiter();
+                }
+                else if (hr == 0 && res != 0)
                 {
                     Settings.SetBackupPath(string.Empty);
                     System.Windows.MessageBox.Show($"백업 폴더 설정에 실패했습니다.\r\n백업 폴더를 다시 지정해주세요.\r\n{backupPath}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 폴더 초기 설정 실패: {backupPath} (Error Code: {res})");
+                    log.AddAsync().GetAwaiter();
                 }
 
                 // 재연결 시 모든 데이터를 초기화 후 다시 등록한다
@@ -120,12 +135,8 @@ namespace FrtvGUI
                 Task.Run(async () => await ExpirationWatchdog.InitializeWatchdog(TokenSource.Token));
 
                 // DB와 레지스트리에서 취득한 설정을 UI에 업데이트한다.
-                // TODO: Observable Collection으로 변경한다.
                 SettingsView.UpdateBackupSettingsUI();
                 SettingsView.UpdateBackupPathUI();
-                SettingsView.UpdateExtensionListUI();
-                SettingsView.UpdateExceptionPathListUI();
-                SettingsView.UpdateIncludePathListUI();
             }
             catch (Exception ex)
             {
@@ -139,9 +150,6 @@ namespace FrtvGUI
             // 커널 드라이버가 작동중이지 않기 때문에 유효기간 만료 체크 또한 진행하지 않는다.
             TokenSource.Cancel();
         }
-
-        [DllImport("FrtvBridge.dll")]
-        public static extern int SendMinifltPortA(int rtvCode, string msg, uint crc32, long fileSize);
 
         [DllImport("FrtvBridge.dll")]
         public static extern int InitializeCommunicator();
@@ -168,6 +176,5 @@ namespace FrtvGUI
         public static extern int RestoreBackupFile(string dstPath, uint crc32, bool overwriteDst, out int hr);
         [DllImport("FrtvBridge.dll")]
         public static extern int DeleteBackupFile(uint crc32, out int hr);
-        
     }
 }

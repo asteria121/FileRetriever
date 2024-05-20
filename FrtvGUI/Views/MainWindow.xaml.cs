@@ -1,31 +1,10 @@
-﻿using Microsoft.Win32;
-using System.Collections.ObjectModel;
-using System.IO;
-using System.Text;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+﻿using System.Windows;
 using MahApps.Metro.Controls;
 using System.ComponentModel;
-using FrtvGUI.Elements;
-using Microsoft.WindowsAPICodePack.Dialogs;
-using System.Runtime.InteropServices;
-using System;
-using System.Data.SQLite;
-using System.Runtime.CompilerServices;
-using System.Reflection;
-using System.Windows.Threading;
-using System.Xml;
 using MahApps.Metro.Controls.Dialogs;
 using FrtvGUI.Database;
-using System.Runtime.Intrinsics.Arm;
-
+using FrtvGUI.Elements;
+using FrtvGUI.Enums;
 
 namespace FrtvGUI.Views
 {
@@ -70,14 +49,12 @@ namespace FrtvGUI.Views
 
         public static async Task ShowHresultError(int hr)
         {
-            await Wnd.ShowMessageAsync("Error", $"드라이버와 통신에 실패했습니다.\r\nHRESULT: 0x{hr:X8}", settings: DialogSettings);
-            // TODO: 로그
+            await Wnd.ShowMessageAsync("Error", $"드라이버와 통신에 실패했습니다.\r\n진행중이던 작업은 취소됩니다.\r\nHRESULT: 0x{hr:X8}", settings: DialogSettings);
         }
 
         // Bar 형식의 메세지를 출력하는 함수
         public static void ShowAppBar(string message, System.Windows.Media.Brush color, long autoCloseInterval = 3000, bool isAutoClose = true)
         {
-            // TODO: 메세지 색상을 지정할 수 있도록 만들 예정
             var flyout = new AppBarFlyout(message, color);
             flyout.AutoCloseInterval = autoCloseInterval;
             flyout.IsAutoCloseEnabled = isAutoClose;
@@ -158,18 +135,16 @@ namespace FrtvGUI.Views
                 {
                     if (ToggleMenuProgramChanged == false)
                     {
-                        int hr = 0;
+                        int hr = 0, result = 0;
                         if (ToggleMenu.Checked == true)
                         {
-                            int result = BridgeFunctions.ToggleBackupSwitch(1, out hr);
-                            if (result == 0)
+                            result = BridgeFunctions.ToggleBackupSwitch(1, out hr);
+                            if (result == 0 && hr == 0)
                             {
                                 // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
                                 Settings.SetBackupEnabled(true);
-                            }
-                            else
-                            {
-                                System.Windows.MessageBox.Show($"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                                Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경: ON");
+                                log.AddAsync().GetAwaiter();
                             }
                         }
                         else
@@ -177,17 +152,28 @@ namespace FrtvGUI.Views
                             var msgResult = System.Windows.MessageBox.Show("실시간 백업이 중단됩니다.\r\n계속 하시겠습니까?", "FileRetriever", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                             if (msgResult == MessageBoxResult.Yes)
                             {
-                                int result = BridgeFunctions.ToggleBackupSwitch(0, out hr);
-                                if (result == 0)
+                                result = BridgeFunctions.ToggleBackupSwitch(0, out hr);
+                                if (result == 0 && hr == 0)
                                 {
                                     // 성공 시 레지스트리와 모든 UI 설정을 동기화한다.
                                     Settings.SetBackupEnabled(false);
-                                }
-                                else
-                                {
-                                    System.Windows.MessageBox.Show($"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경: OFF");
+                                    log.AddAsync().GetAwaiter();
                                 }
                             }
+                        }
+
+                        if (hr != 0)
+                        {
+                            System.Windows.MessageBox.Show($"드라이버와 통신에 실패했습니다.\r\nHRESULT: 0x{hr:X8}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                            log.AddAsync().GetAwaiter();
+                        }
+                        else
+                        {
+                            System.Windows.MessageBox.Show($"실시간 백업 설정 변경에 실패했습니다.\r\nError Code: {result}", "FileRetriever", MessageBoxButton.OK, MessageBoxImage.Error);
+                            Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"실시간 백업 설정 변경 실패 (Error Code: {result})");
+                            log.AddAsync().GetAwaiter();
                         }
 
                         // 최종 레지스트리 값으로 UI와 우클릭 메뉴를 동기화한다.
@@ -196,7 +182,8 @@ namespace FrtvGUI.Views
                 }
                 catch (Exception ex)
                 {
-
+                    System.Windows.MessageBox.Show("Error", $"파일 삭제 중 예외가 발생했습니다. 진행되지 않은 작업은 취소됩니다.{ex.GetType().Name}: {ex.Message}");
+                    Log.PrintExceptionLogFileAsync(ex).GetAwaiter();
                 }
             };
 
@@ -230,8 +217,6 @@ namespace FrtvGUI.Views
                 this.WindowState = WindowState.Normal;
             };
         }
-
-        
 
         private void OpenLogWindowButton_Click(object sender, RoutedEventArgs e)
         {

@@ -7,6 +7,7 @@ using System.IO;
 using FrtvGUI.Database;
 using System.Data.SQLite;
 using System.Runtime.Intrinsics.Arm;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace FrtvGUI.Elements
 {
@@ -88,6 +89,48 @@ namespace FrtvGUI.Elements
             {
                 await cmd.ExecuteNonQueryAsync();
                 GetInstance().Clear();
+            }
+        }
+
+        public static async Task PrintLogFile(int logLevel, string message)
+        {
+            string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Log");
+            string logFileName = $"{DateTime.Now.ToString("yyyy-MM-dd")}_frtv.log";
+
+            try
+            {
+                if (!Directory.Exists(logDirectory))
+                    Directory.CreateDirectory(logDirectory);
+
+                using (StreamWriter sw = new StreamWriter(Path.Combine(logDirectory, logFileName), true))
+                {
+                    await sw.WriteLineAsync($"{DateTime.Now.ToString("[HH:mm:ss]")} [{logLevel}]: {message}");
+                }
+            }
+            catch
+            {
+
+            }
+        }
+
+        public static async Task PrintExceptionLogFileAsync(Exception ex)
+        {
+            string logDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Exception");
+            string logFileName = $"{DateTime.Now.ToString("yyyy-MM-dd_HH:mm:ss")}_frtv_exception.log";
+
+            try
+            {
+                if (!Directory.Exists(logDirectory))
+                    Directory.CreateDirectory(logDirectory);
+
+                using (StreamWriter sw = new StreamWriter(Path.Combine(logDirectory, logFileName), true))
+                {
+                    await sw.WriteLineAsync($"{ex.GetType()}: {ex.Message}\r\n{ex.StackTrace}");
+                }
+            }
+            catch
+            {
+
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using FrtvGUI.Elements;
+using FrtvGUI.Enums;
 using FrtvGUI.Views;
 using System.Data.SQLite;
 
@@ -24,18 +25,24 @@ namespace FrtvGUI.Database
                             {
                                 uint crc32 = (uint)Convert.ToInt32(reader["CRC32"]);
                                 int hr = 0;
-                                if (BridgeFunctions.DeleteBackupFile(crc32, out hr) == 0)
+                                int result = BridgeFunctions.DeleteBackupFile(crc32, out hr);
+                                if (result == 0 && hr == 0)
                                 {
                                     await BackupFile.GetInstance().Where(x => x.Crc32 == crc32).First().RemoveAsync();
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 자동 삭제: {crc32:X8}");
+                                    log.AddAsync().GetAwaiter();
+                                }
+                                else if (hr != 0)
+                                {
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                                    log.AddAsync().GetAwaiter();
                                 }
                                 else
                                 {
-                                    // TODO: LOG
+                                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"파일 자동 삭제 실패: {crc32:X8} (NTSTATUS: 0x{result:X8})");
+                                    log.AddAsync().GetAwaiter();
                                 }
                             }
-
-                            // 삭제 후 파일 목록 새로고침을 해준다
-                            //MainWindow.UpdateFileListUI();
                         }
                     }
 
@@ -51,7 +58,7 @@ namespace FrtvGUI.Database
                 }
                 catch (Exception ex)
                 {
-                    // TODO: LOG
+                    await Log.PrintExceptionLogFileAsync(ex);
                 }
             }
         }

@@ -26,8 +26,6 @@ namespace FrtvGUI
         RTV_DBG_MESSAGE
     }
 
-    // TODO: 같은 에러코드를 사용하지 않는다.
-    // TODO: 커널로부터 온 에러코드를 활용할 수 있도록 한다.
     enum RTVCMDRESULT
     {
         RTVCMD_SUCCESS,

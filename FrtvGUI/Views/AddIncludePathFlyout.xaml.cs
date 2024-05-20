@@ -1,21 +1,8 @@
-﻿using FrtvGUI.Database;
-using FrtvGUI.Elements;
-using MahApps.Metro.Controls;
+﻿using FrtvGUI.Elements;
+using FrtvGUI.Enums;
 using MahApps.Metro.Controls.Dialogs;
 using Microsoft.WindowsAPICodePack.Dialogs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace FrtvGUI.Views
 {
@@ -44,12 +31,6 @@ namespace FrtvGUI.Views
             InitializeComponent();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            // 이곳에 버튼 클릭 시 실행할 코드를 작성합니다.
-            System.Windows.MessageBox.Show("TEST");
-        }
-
         private async void confirmButton_Click(object sender, RoutedEventArgs e)
         {
             long totalSeconds = Convert.ToInt64((ExpirationYear.Value * 365 * 86400) + (ExpirationDay.Value * 86400) + (ExpirationHour.Value * 3600) + (ExpirationMinute.Value * 60));
@@ -67,10 +48,12 @@ namespace FrtvGUI.Views
             {
                 int hr = 0;
                 int result = BridgeFunctions.AddIncludePath(Path.Text, MaximumFileSizeBytes, out hr);
-                if (result == 0)
+                if (result == 0 && hr == 0)
                 {
                     var path = new IncludePath(Path.Text, MaximumFileSizeBytes, Expiration);
                     await path.AddAsync();
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvNormal, $"백업 포함 경로 추가: {Path.Text}");
+                    log.AddAsync().GetAwaiter();
 
                     Path.Text = string.Empty;
                     MaximumFileSize.Value = null;
@@ -79,19 +62,25 @@ namespace FrtvGUI.Views
                     ExpirationHour.Value = null;
                     ExpirationMinute.Value = null;
                 }
+                else if (hr != 0)
+                {
+                    // 드라이버 통신에 실패한 경우 HRESULT 반환
+                    await MainWindow.ShowHresultError(hr);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"드라이버 통신 실패 (HRESULT: 0x{hr:X8})");
+                    log.AddAsync().GetAwaiter();
+                }
                 else
                 {
-                    // TODO: 상위폴더 및 하위폴더 중복 불가 알리기
-                    await MainWindow.Wnd.ShowMessageAsync("실패했습니다.", "실패", settings: MainWindow.DialogSettings);
+                    // 그 외의 경우 정상적인 과정에서 실패함
+                    await DisplayIncludePathAddErrorByResult(result);
+                    Log log = new Log(DateTime.Now, (uint)FrtvLogLevel.FrtvError, $"백업 포함 경로 추가 실패: {Path.Text} (Error Code: {result})");
+                    log.AddAsync().GetAwaiter();
                 }
             }
             catch (Exception ex)
             {
-
-            }
-            finally
-            {
-                SettingsView.UpdateIncludePathListUI();
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"백업 경로 등록 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
             }
         }
 
@@ -109,7 +98,24 @@ namespace FrtvGUI.Views
             }
             catch (Exception ex)
             {
-                await MainWindow.Wnd.ShowMessageAsync("Error", $"경로를 가져오는 중 오류가 발생했습니다.\r\n{ex.Message}\r\n{ex.StackTrace}", settings: MainWindow.DialogSettings);
+                await MainWindow.Wnd.ShowMessageAsync("Error", $"경로를 가져오는 중 예외가 발생했습니다.\r\n{ex.GetType().Name}: {ex.Message}", settings: MainWindow.DialogSettings);
+                await Log.PrintExceptionLogFileAsync(ex);
+            }
+        }
+
+        private async Task DisplayIncludePathAddErrorByResult(int result)
+        {
+            if (result == (int)IncludePathResult.INCPATH_EXISTS)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", "이미 등록된 폴더의 하위폴더 또는 상위폴더이거나 이미 등록되었을 수 있습니다.", settings: MainWindow.DialogSettings);
+            }
+            else if (result == (int)IncludePathResult.INCPATH_TOO_LONG)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", "경로가 너무 깁니다. (260바이트 초과)", settings: MainWindow.DialogSettings);
+            }
+            else if (result == (int)IncludePathResult.INCPATH_OUT_OF_MEMORY)
+            {
+                await MainWindow.Wnd.ShowMessageAsync("Error", "컴퓨터의 메모리가 부족합니다.", settings: MainWindow.DialogSettings);
             }
         }
     }
